@@ -9,9 +9,12 @@ import SwiftUI
 
 @main
 struct ParenTimeApp: App {
+    @StateObject private var container = AppContainer.shared
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ChildrenListView(childrenStore: container.childrenStore)
+                .environment(\.appContainer, container)
         }
     }
 }
