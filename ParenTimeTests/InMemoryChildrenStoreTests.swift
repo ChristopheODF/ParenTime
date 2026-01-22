@@ -63,6 +63,19 @@ struct InMemoryChildrenStoreTests {
         #expect(children[0].id == child.id)
     }
     
+    @Test("Update non-existent child throws error")
+    func testUpdateNonExistentChild() async throws {
+        let store = InMemoryChildrenStore()
+        let child = Child(firstName: "Alice", lastName: "Dupont")
+        
+        do {
+            try await store.updateChild(child)
+            Issue.record("Expected error but none was thrown")
+        } catch {
+            // Expected error
+        }
+    }
+    
     @Test("Delete child removes it from store")
     func testDeleteChild() async throws {
         let store = InMemoryChildrenStore()

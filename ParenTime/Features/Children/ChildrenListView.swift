@@ -73,14 +73,9 @@ struct ChildrenListView: View {
     private var childrenList: some View {
         List {
             ForEach(viewModel.children) { child in
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(child.fullName)
-                        .font(.headline)
-                    Text("ID: \(child.id.uuidString.prefix(8))...")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.vertical, 4)
+                Text(child.fullName)
+                    .font(.headline)
+                    .padding(.vertical, 4)
             }
             .onDelete { offsets in
                 Task {

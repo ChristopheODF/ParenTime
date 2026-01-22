@@ -53,6 +53,8 @@ final class ChildrenViewModel: ObservableObject {
                 try await childrenStore.deleteChild(id: child.id)
             } catch {
                 errorMessage = "Erreur lors de la suppression: \(error.localizedDescription)"
+                await loadChildren()
+                return
             }
         }
         await loadChildren()

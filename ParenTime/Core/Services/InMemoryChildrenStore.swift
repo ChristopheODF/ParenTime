@@ -32,9 +32,11 @@ final class InMemoryChildrenStore: ChildrenStore {
     func updateChild(_ child: Child) async throws {
         lock.lock()
         defer { lock.unlock() }
-        if let index = children.firstIndex(where: { $0.id == child.id }) {
-            children[index] = child
+        guard let index = children.firstIndex(where: { $0.id == child.id }) else {
+            throw NSError(domain: "InMemoryChildrenStore", code: 404, 
+                         userInfo: [NSLocalizedDescriptionKey: "Child not found"])
         }
+        children[index] = child
     }
     
     func deleteChild(id: UUID) async throws {
