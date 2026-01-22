@@ -15,12 +15,24 @@ struct DefaultSuggestionTemplate: Codable, Identifiable, Equatable {
     let priority: String
     let conditions: Conditions
     let defaultNotificationTime: String
+    let description: String?
+    let schedule: Schedule?
     
     struct Conditions: Codable, Equatable {
         let minAge: Int?
         let maxAge: Int?
         let minBirthDate: String?
         let maxBirthDate: String?
+    }
+    
+    struct Schedule: Codable, Equatable {
+        let dueAgeMonths: [Int]?
+        let dueAgeMonthsRange: ScheduleRange?
+    }
+    
+    struct ScheduleRange: Codable, Equatable {
+        let min: Int
+        let max: Int
     }
     
     /// Check if this template is applicable to a child at a given date
@@ -30,7 +42,12 @@ struct DefaultSuggestionTemplate: Codable, Identifiable, Equatable {
     ///   - calendar: The calendar to use for calculations
     /// - Returns: true if the template conditions are met
     func isApplicable(to child: Child, at referenceDate: Date = Date(), calendar: Calendar = .current) -> Bool {
-        // Check age conditions
+        // Check month-based schedule first (higher priority)
+        if let schedule = schedule {
+            return isScheduleApplicable(schedule: schedule, child: child, at: referenceDate, calendar: calendar)
+        }
+        
+        // Fall back to year-based age conditions
         if let age = child.age(at: referenceDate, calendar: calendar) {
             if let minAge = conditions.minAge, age < minAge {
                 return false
@@ -63,6 +80,40 @@ struct DefaultSuggestionTemplate: Codable, Identifiable, Equatable {
         }
         
         return true
+    }
+    
+    /// Check if the schedule is applicable to a child
+    private func isScheduleApplicable(schedule: Schedule, child: Child, at referenceDate: Date, calendar: Calendar) -> Bool {
+        guard let ageInMonths = child.ageInMonths(at: referenceDate, calendar: calendar) else {
+            return false
+        }
+        
+        // Check dueAgeMonths with ±1 month tolerance
+        if let dueAgeMonths = schedule.dueAgeMonths {
+            for dueMonth in dueAgeMonths {
+                // Applicable if ageInMonths is within [dueMonth-1, dueMonth+1]
+                // Use max(0, ...) to prevent matching negative ages for month 0
+                let minAge = max(0, dueMonth - 1)
+                let maxAge = dueMonth + 1
+                if ageInMonths >= minAge && ageInMonths <= maxAge {
+                    return true
+                }
+            }
+            return false
+        }
+        
+        // Check dueAgeMonthsRange with ±1 month tolerance
+        if let range = schedule.dueAgeMonthsRange {
+            // Applicable if ageInMonths is within [min-1, max+1]
+            // Use max(0, ...) to prevent matching negative ages
+            let minAge = max(0, range.min - 1)
+            let maxAge = range.max + 1
+            return ageInMonths >= minAge && ageInMonths <= maxAge
+        }
+        
+        // Schedule exists but no criteria specified - not applicable
+        // Note: A valid schedule should have at least one of dueAgeMonths or dueAgeMonthsRange
+        return false
     }
     
     private func parseDate(_ dateString: String) -> Date? {
