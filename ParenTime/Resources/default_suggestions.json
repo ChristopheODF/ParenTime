@@ -1,0 +1,36 @@
+[
+  {
+    "id": "hpv_vaccination",
+    "title": "Vaccination HPV",
+    "category": "vaccines",
+    "priority": "recommended",
+    "conditions": {
+      "minAge": 11,
+      "maxAge": 14
+    },
+    "defaultNotificationTime": "09:00"
+  },
+  {
+    "id": "mandatory_vaccines_0_2",
+    "title": "Vaccins obligatoires (0-2 ans)",
+    "category": "vaccines",
+    "priority": "required",
+    "conditions": {
+      "minAge": 0,
+      "maxAge": 2
+    },
+    "defaultNotificationTime": "09:00"
+  },
+  {
+    "id": "meningococcus_b_2025",
+    "title": "Méningocoque B",
+    "category": "vaccines",
+    "priority": "required",
+    "conditions": {
+      "minAge": 0,
+      "maxAge": 2,
+      "minBirthDate": "2025-01-01"
+    },
+    "defaultNotificationTime": "09:00"
+  }
+]

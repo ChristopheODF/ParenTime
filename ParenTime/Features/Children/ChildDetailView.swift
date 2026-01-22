@@ -7,11 +7,11 @@
 
 import SwiftUI
 
-/// Vue de détail d'un enfant avec suggestions de rappels
+/// Vue de détail d'un enfant avec dashboard simplifié
 struct ChildDetailView: View {
     let child: Child
-    @State private var suggestions: [ReminderSuggestion] = []
-    @State private var activatedSuggestions: Set<UUID> = []
+    @StateObject private var suggestionStateStore: SuggestionStateStore
+    @State private var allSuggestions: [ReminderSuggestion] = []
     @State private var showingPermissionAlert = false
     @State private var permissionDeniedAlert = false
     
@@ -21,86 +21,41 @@ struct ChildDetailView: View {
     init(
         child: Child,
         notificationScheduler: NotificationScheduler = UserNotificationScheduler(),
-        suggestionsEngine: ReminderSuggestionsEngine = ReminderSuggestionsEngine()
+        suggestionsEngine: ReminderSuggestionsEngine = ReminderSuggestionsEngine(),
+        suggestionStateStore: SuggestionStateStore = AppContainer.shared.suggestionStateStore
     ) {
         self.child = child
         self.notificationScheduler = notificationScheduler
         self.suggestionsEngine = suggestionsEngine
+        _suggestionStateStore = StateObject(wrappedValue: suggestionStateStore)
+    }
+    
+    private var activeSuggestions: [ReminderSuggestion] {
+        suggestionStateStore.filterSuggestions(allSuggestions, forChild: child.id)
+    }
+    
+    private var toDoNow: [ReminderSuggestion] {
+        Array(activeSuggestions.prefix(3))
     }
     
     var body: some View {
-        List {
-            // Child information section
-            Section("Informations") {
-                HStack {
-                    Text("Nom complet")
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(child.fullName)
+        ScrollView {
+            VStack(spacing: 24) {
+                // Header with name and age
+                headerSection
+                
+                // À faire maintenant section
+                if !toDoNow.isEmpty {
+                    toDoNowSection
                 }
                 
-                if let age = child.age() {
-                    HStack {
-                        Text("Âge")
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Text("\(age) ans")
-                    }
-                }
+                // À venir section
+                upcomingSection
                 
-                HStack {
-                    Text("Date de naissance")
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(child.birthDate, style: .date)
-                }
+                // Domain cards
+                domainCardsSection
             }
-            
-            // Suggestions section
-            if !suggestions.isEmpty {
-                Section {
-                    ForEach(suggestions) { suggestion in
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(suggestion.title)
-                                        .font(.headline)
-                                    Text(suggestion.description)
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                            }
-                            
-                            if activatedSuggestions.contains(suggestion.id) {
-                                HStack {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(.green)
-                                    Text("Rappel activé")
-                                        .font(.caption)
-                                        .foregroundStyle(.green)
-                                }
-                            } else {
-                                Button {
-                                    Task {
-                                        await activateSuggestion(suggestion)
-                                    }
-                                } label: {
-                                    Label("Activer le rappel", systemImage: "bell.badge")
-                                        .font(.subheadline)
-                                }
-                                .buttonStyle(.bordered)
-                            }
-                        }
-                        .padding(.vertical, 4)
-                    }
-                } header: {
-                    Text("Suggestions de rappels")
-                } footer: {
-                    Text("Ces suggestions sont basées sur l'âge de votre enfant et les recommandations médicales.")
-                        .font(.caption)
-                }
-            }
+            .padding()
         }
         .navigationTitle(child.firstName)
         .navigationBarTitleDisplayMode(.inline)
@@ -124,8 +79,198 @@ struct ChildDetailView: View {
         }
     }
     
+    private var headerSection: some View {
+        VStack(spacing: 8) {
+            Text(child.fullName)
+                .font(.title2)
+                .bold()
+            
+            if let age = child.age() {
+                Text("\(age) ans")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            
+            Text(child.birthDate, style: .date)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+    
+    private var toDoNowSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .foregroundStyle(.orange)
+                Text("À faire maintenant")
+                    .font(.headline)
+            }
+            
+            ForEach(toDoNow) { suggestion in
+                suggestionCard(suggestion)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    
+    private var upcomingSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "calendar")
+                    .foregroundStyle(.blue)
+                Text("À venir")
+                    .font(.headline)
+            }
+            
+            // For MVP, show placeholder or activated suggestions count
+            let activatedCount = suggestionStateStore.activatedSuggestions[child.id]?.count ?? 0
+            if activatedCount > 0 {
+                HStack {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                    Text("\(activatedCount) rappel(s) activé(s)")
+                        .font(.subheadline)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(.systemGray6))
+                .cornerRadius(8)
+            } else {
+                Text("Aucun événement planifié")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(8)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    
+    private var domainCardsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Domaines")
+                .font(.headline)
+            
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                domainCard(title: "Vaccins", icon: "cross.case.fill", color: .blue)
+                domainCard(title: "Traitements", icon: "pills.fill", color: .green)
+                domainCard(title: "Rendez-vous", icon: "calendar.badge.clock", color: .orange)
+                domainCard(title: "Rappels", icon: "bell.fill", color: .purple)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    
+    private func domainCard(title: String, icon: String, color: Color) -> some View {
+        Button {
+            // Stub - domain navigation not implemented yet
+        } label: {
+            VStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.title)
+                    .foregroundStyle(color)
+                Text(title)
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(Color(.systemGray6))
+            .cornerRadius(12)
+        }
+    }
+    
+    private func suggestionCard(_ suggestion: ReminderSuggestion) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(suggestion.title)
+                        .font(.subheadline)
+                        .bold()
+                    
+                    HStack(spacing: 4) {
+                        priorityBadge(suggestion.priority)
+                        categoryBadge(suggestion.category)
+                    }
+                }
+                Spacer()
+            }
+            
+            HStack(spacing: 8) {
+                Button {
+                    Task {
+                        await activateSuggestion(suggestion)
+                    }
+                } label: {
+                    Label("Activer", systemImage: "bell.badge")
+                        .font(.caption)
+                }
+                .buttonStyle(.borderedProminent)
+                
+                Button {
+                    ignoreSuggestion(suggestion)
+                } label: {
+                    Label("Ignorer", systemImage: "xmark")
+                        .font(.caption)
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(8)
+        .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+    }
+    
+    private func priorityBadge(_ priority: SuggestionPriority) -> some View {
+        let (text, color): (String, Color) = {
+            switch priority {
+            case .required: return ("Obligatoire", .red)
+            case .recommended: return ("Recommandé", .orange)
+            case .info: return ("Info", .blue)
+            }
+        }()
+        
+        return Text(text)
+            .font(.caption2)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(color.opacity(0.2))
+            .foregroundStyle(color)
+            .cornerRadius(4)
+    }
+    
+    private func categoryBadge(_ category: SuggestionCategory) -> some View {
+        let text: String = {
+            switch category {
+            case .vaccines: return "Vaccins"
+            case .appointments: return "RDV"
+            case .medications: return "Traitements"
+            case .custom: return "Autre"
+            }
+        }()
+        
+        return Text(text)
+            .font(.caption2)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color.gray.opacity(0.2))
+            .foregroundStyle(.secondary)
+            .cornerRadius(4)
+    }
+    
     private func loadSuggestions() {
-        suggestions = suggestionsEngine.suggestions(for: child)
+        allSuggestions = suggestionsEngine.suggestions(for: child)
+    }
+    
+    private func ignoreSuggestion(_ suggestion: ReminderSuggestion) {
+        suggestionStateStore.ignoreSuggestion(suggestion.templateId, forChild: child.id)
     }
     
     private func activateSuggestion(_ suggestion: ReminderSuggestion) async {
@@ -140,13 +285,9 @@ struct ChildDetailView: View {
                 if granted {
                     await scheduleNotification(for: suggestion)
                 } else {
-                    // TODO: Replace with proper logging in production (e.g., os_log)
-                    // For MVP, silent failure is acceptable as user was prompted
                     permissionDeniedAlert = true
                 }
             } catch {
-                // TODO: Replace with proper logging framework in production
-                // For MVP, show user-facing error
                 permissionDeniedAlert = true
             }
             
@@ -166,14 +307,11 @@ struct ChildDetailView: View {
     private func scheduleNotification(for suggestion: ReminderSuggestion) async {
         do {
             // For MVP, schedule a notification for tomorrow at 9 AM
-            // In production, this would be configurable
             let calendar = Calendar.current
             let now = Date()
             
             // Get tomorrow's date safely
             guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: now) else {
-                // TODO: Replace with proper logging framework (e.g., os_log) in production
-                // For MVP, silent failure is acceptable as this is extremely rare
                 return
             }
             
@@ -183,24 +321,22 @@ struct ChildDetailView: View {
             components.minute = 0
             
             guard let notificationDate = calendar.date(from: components) else {
-                // TODO: Replace with proper logging framework (e.g., os_log) in production
                 return
             }
             
-            // Use stable identifier based on child ID and suggestion type
-            let identifier = "reminder_\(child.id.uuidString)_\(suggestion.type.rawValue)"
+            // Use stable identifier based on child ID and template ID
+            let identifier = "reminder_\(child.id.uuidString)_\(suggestion.templateId)"
             
             try await notificationScheduler.scheduleNotification(
                 identifier: identifier,
                 title: suggestion.title,
-                body: "Rappel pour \(child.firstName): \(suggestion.description)",
+                body: "Rappel pour \(child.firstName): \(suggestion.title)",
                 at: notificationDate
             )
             
             // Mark as activated
-            activatedSuggestions.insert(suggestion.id)
+            suggestionStateStore.activateSuggestion(suggestion.templateId, forChild: child.id)
         } catch {
-            // TODO: Replace with proper logging framework (e.g., os_log) in production
             // For MVP, silent failure is acceptable
         }
     }

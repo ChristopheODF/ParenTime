@@ -10,38 +10,56 @@ import Foundation
 /// Type de suggestion de rappel
 enum ReminderSuggestionType: String, Codable, Equatable {
     case hpvVaccination = "hpv_vaccination"
+    case mandatoryVaccines = "mandatory_vaccines_0_2"
+    case meningococcusB = "meningococcus_b_2025"
+}
+
+/// Category of suggestion
+enum SuggestionCategory: String, Codable, Equatable {
+    case vaccines
+    case appointments
+    case medications
+    case custom
+}
+
+/// Priority level of suggestion
+enum SuggestionPriority: String, Codable, Equatable {
+    case required
+    case recommended
+    case info
 }
 
 /// Suggestion de rappel basée sur l'âge de l'enfant
 struct ReminderSuggestion: Identifiable, Equatable {
-    let id: UUID
-    let type: ReminderSuggestionType
+    let id: String
+    let templateId: String
     let title: String
-    let description: String
-    let ageRange: ClosedRange<Int>
+    let category: SuggestionCategory
+    let priority: SuggestionPriority
     
     init(
-        id: UUID = UUID(),
-        type: ReminderSuggestionType,
+        id: String = UUID().uuidString,
+        templateId: String,
         title: String,
-        description: String,
-        ageRange: ClosedRange<Int>
+        category: SuggestionCategory,
+        priority: SuggestionPriority
     ) {
         self.id = id
-        self.type = type
+        self.templateId = templateId
         self.title = title
-        self.description = description
-        self.ageRange = ageRange
+        self.category = category
+        self.priority = priority
+    }
+    
+    /// Create a suggestion from a template
+    static func from(template: DefaultSuggestionTemplate) -> ReminderSuggestion {
+        return ReminderSuggestion(
+            id: UUID().uuidString,
+            templateId: template.id,
+            title: template.title,
+            category: SuggestionCategory(rawValue: template.category) ?? .custom,
+            priority: SuggestionPriority(rawValue: template.priority) ?? .info
+        )
     }
 }
 
-// Predefined suggestions
-extension ReminderSuggestion {
-    /// HPV vaccination suggestion for children aged 11-14
-    static let hpvVaccination = ReminderSuggestion(
-        type: .hpvVaccination,
-        title: "Vaccination HPV",
-        description: "La vaccination contre le papillomavirus (HPV) est recommandée entre 11 et 14 ans pour prévenir certains cancers.",
-        ageRange: 11...14
-    )
-}
