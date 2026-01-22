@@ -194,6 +194,13 @@ struct ChildDetailView: View {
                         .font(.subheadline)
                         .bold()
                     
+                    // Display description if available
+                    if let description = suggestion.description {
+                        Text(description)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    
                     HStack(spacing: 4) {
                         priorityBadge(suggestion.priority)
                         categoryBadge(suggestion.category)

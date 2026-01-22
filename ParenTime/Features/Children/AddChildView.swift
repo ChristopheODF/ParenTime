@@ -12,13 +12,7 @@ struct AddChildView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var firstName = ""
     @State private var lastName = ""
-    @State private var birthDate: Date = {
-        // Default to 10 years ago for better UX
-        // Use Jan 1, 1980 as fallback if calculation fails (extremely rare)
-        let tenYearsAgo = Calendar.current.date(byAdding: .year, value: -10, to: Date())
-        let fallbackDate = Calendar.current.date(from: DateComponents(year: 1980, month: 1, day: 1)) ?? Date()
-        return tenYearsAgo ?? fallbackDate
-    }()
+    @State private var birthDate: Date = Date()
     
     let onAdd: (String, String, Date) -> Void
     

@@ -36,19 +36,22 @@ struct ReminderSuggestion: Identifiable, Equatable {
     let title: String
     let category: SuggestionCategory
     let priority: SuggestionPriority
+    let description: String?
     
     init(
         id: String = UUID().uuidString,
         templateId: String,
         title: String,
         category: SuggestionCategory,
-        priority: SuggestionPriority
+        priority: SuggestionPriority,
+        description: String? = nil
     ) {
         self.id = id
         self.templateId = templateId
         self.title = title
         self.category = category
         self.priority = priority
+        self.description = description
     }
     
     /// Create a suggestion from a template
@@ -58,7 +61,8 @@ struct ReminderSuggestion: Identifiable, Equatable {
             templateId: template.id,
             title: template.title,
             category: SuggestionCategory(rawValue: template.category) ?? .custom,
-            priority: SuggestionPriority(rawValue: template.priority) ?? .info
+            priority: SuggestionPriority(rawValue: template.priority) ?? .info,
+            description: template.description
         )
     }
 }

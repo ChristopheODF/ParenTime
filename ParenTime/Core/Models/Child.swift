@@ -36,4 +36,16 @@ struct Child: Identifiable, Codable, Equatable {
         // Ensure age is non-negative (handles case where birthDate is in the future)
         return max(0, years)
     }
+    
+    /// Calculate the age of the child in months at a given date
+    /// - Parameters:
+    ///   - date: The reference date for age calculation (defaults to now)
+    ///   - calendar: The calendar to use for calculation (defaults to current)
+    /// - Returns: The age in months (always >= 0), or nil if calculation fails
+    func ageInMonths(at date: Date = Date(), calendar: Calendar = .current) -> Int? {
+        let ageComponents = calendar.dateComponents([.month], from: birthDate, to: date)
+        guard let months = ageComponents.month else { return nil }
+        // Ensure age is non-negative (handles case where birthDate is in the future)
+        return max(0, months)
+    }
 }
