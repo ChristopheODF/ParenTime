@@ -1,7 +1,216 @@
 [
   {
-    "id": "hpv_vaccination",
-    "title": "Vaccination HPV",
+    "id": "bcg_vaccination",
+    "title": "BCG",
+    "description": "Vaccination contre la tuberculose, recommandée dès la naissance pour les enfants à risque élevé",
+    "category": "vaccines",
+    "priority": "recommended",
+    "schedule": {
+      "dueAgeMonths": [0]
+    },
+    "conditions": {},
+    "defaultNotificationTime": "09:00"
+  },
+  {
+    "id": "dtp_coqueluche_1",
+    "title": "DTP et Coqueluche - 1ère dose",
+    "description": "Vaccination contre diphtérie, tétanos, poliomyélite et coqueluche à 2 mois",
+    "category": "vaccines",
+    "priority": "required",
+    "schedule": {
+      "dueAgeMonths": [2]
+    },
+    "conditions": {},
+    "defaultNotificationTime": "09:00"
+  },
+  {
+    "id": "dtp_coqueluche_2",
+    "title": "DTP et Coqueluche - 2ème dose",
+    "description": "Vaccination contre diphtérie, tétanos, poliomyélite et coqueluche à 4 mois",
+    "category": "vaccines",
+    "priority": "required",
+    "schedule": {
+      "dueAgeMonths": [4]
+    },
+    "conditions": {},
+    "defaultNotificationTime": "09:00"
+  },
+  {
+    "id": "dtp_coqueluche_3",
+    "title": "DTP et Coqueluche - 3ème dose",
+    "description": "Vaccination contre diphtérie, tétanos, poliomyélite et coqueluche à 11 mois",
+    "category": "vaccines",
+    "priority": "required",
+    "schedule": {
+      "dueAgeMonths": [11]
+    },
+    "conditions": {},
+    "defaultNotificationTime": "09:00"
+  },
+  {
+    "id": "dtp_rappel_6ans",
+    "title": "DTP - Rappel 6 ans",
+    "description": "Rappel diphtérie, tétanos, poliomyélite à 6 ans",
+    "category": "vaccines",
+    "priority": "required",
+    "schedule": {
+      "dueAgeMonths": [72]
+    },
+    "conditions": {},
+    "defaultNotificationTime": "09:00",
+    "_comment": "72 months = 6 years"
+  },
+  {
+    "id": "hib_1",
+    "title": "Haemophilus influenzae b - 1ère dose",
+    "description": "Vaccination contre Haemophilus influenzae type b à 2 mois",
+    "category": "vaccines",
+    "priority": "required",
+    "schedule": {
+      "dueAgeMonths": [2]
+    },
+    "conditions": {},
+    "defaultNotificationTime": "09:00"
+  },
+  {
+    "id": "hib_2",
+    "title": "Haemophilus influenzae b - 2ème dose",
+    "description": "Vaccination contre Haemophilus influenzae type b à 4 mois",
+    "category": "vaccines",
+    "priority": "required",
+    "schedule": {
+      "dueAgeMonths": [4]
+    },
+    "conditions": {},
+    "defaultNotificationTime": "09:00"
+  },
+  {
+    "id": "hib_3",
+    "title": "Haemophilus influenzae b - 3ème dose",
+    "description": "Vaccination contre Haemophilus influenzae type b à 11 mois",
+    "category": "vaccines",
+    "priority": "required",
+    "schedule": {
+      "dueAgeMonths": [11]
+    },
+    "conditions": {},
+    "defaultNotificationTime": "09:00"
+  },
+  {
+    "id": "hepatitis_b_1",
+    "title": "Hépatite B - 1ère dose",
+    "description": "Vaccination contre l'hépatite B à 2 mois",
+    "category": "vaccines",
+    "priority": "required",
+    "schedule": {
+      "dueAgeMonths": [2]
+    },
+    "conditions": {},
+    "defaultNotificationTime": "09:00"
+  },
+  {
+    "id": "hepatitis_b_2",
+    "title": "Hépatite B - 2ème dose",
+    "description": "Vaccination contre l'hépatite B à 4 mois",
+    "category": "vaccines",
+    "priority": "required",
+    "schedule": {
+      "dueAgeMonths": [4]
+    },
+    "conditions": {},
+    "defaultNotificationTime": "09:00"
+  },
+  {
+    "id": "hepatitis_b_3",
+    "title": "Hépatite B - 3ème dose",
+    "description": "Vaccination contre l'hépatite B à 11 mois",
+    "category": "vaccines",
+    "priority": "required",
+    "schedule": {
+      "dueAgeMonths": [11]
+    },
+    "conditions": {},
+    "defaultNotificationTime": "09:00"
+  },
+  {
+    "id": "pneumococcus_1",
+    "title": "Pneumocoque - 1ère dose",
+    "description": "Vaccination contre les infections à pneumocoques à 2 mois",
+    "category": "vaccines",
+    "priority": "required",
+    "schedule": {
+      "dueAgeMonths": [2]
+    },
+    "conditions": {},
+    "defaultNotificationTime": "09:00"
+  },
+  {
+    "id": "pneumococcus_2",
+    "title": "Pneumocoque - 2ème dose",
+    "description": "Vaccination contre les infections à pneumocoques à 4 mois",
+    "category": "vaccines",
+    "priority": "required",
+    "schedule": {
+      "dueAgeMonths": [4]
+    },
+    "conditions": {},
+    "defaultNotificationTime": "09:00"
+  },
+  {
+    "id": "pneumococcus_3",
+    "title": "Pneumocoque - 3ème dose",
+    "description": "Vaccination contre les infections à pneumocoques à 11 mois",
+    "category": "vaccines",
+    "priority": "required",
+    "schedule": {
+      "dueAgeMonths": [11]
+    },
+    "conditions": {},
+    "defaultNotificationTime": "09:00"
+  },
+  {
+    "id": "ror_1",
+    "title": "ROR - 1ère dose",
+    "description": "Vaccination contre la rougeole, oreillons et rubéole à 12 mois",
+    "category": "vaccines",
+    "priority": "required",
+    "schedule": {
+      "dueAgeMonths": [12]
+    },
+    "conditions": {},
+    "defaultNotificationTime": "09:00"
+  },
+  {
+    "id": "ror_2",
+    "title": "ROR - 2ème dose",
+    "description": "Vaccination contre la rougeole, oreillons et rubéole entre 16 et 18 mois",
+    "category": "vaccines",
+    "priority": "required",
+    "schedule": {
+      "dueAgeMonthsRange": {
+        "min": 16,
+        "max": 18
+      }
+    },
+    "conditions": {},
+    "defaultNotificationTime": "09:00"
+  },
+  {
+    "id": "meningococcus_c",
+    "title": "Méningocoque C",
+    "description": "Vaccination contre le méningocoque de type C à 5 mois avec rappel à 12 mois",
+    "category": "vaccines",
+    "priority": "required",
+    "schedule": {
+      "dueAgeMonths": [5, 12]
+    },
+    "conditions": {},
+    "defaultNotificationTime": "09:00"
+  },
+  {
+    "id": "meningococcus_acwy",
+    "title": "Méningocoques ACWY",
+    "description": "Vaccination contre les méningocoques ACWY, recommandée pour les adolescents",
     "category": "vaccines",
     "priority": "recommended",
     "conditions": {
@@ -11,26 +220,110 @@
     "defaultNotificationTime": "09:00"
   },
   {
-    "id": "mandatory_vaccines_0_2",
-    "title": "Vaccins obligatoires (0-2 ans)",
+    "id": "meningococcus_b_2025",
+    "title": "Méningocoque B",
+    "description": "Vaccination contre le méningocoque B à 3 mois, 5 mois et 12 mois (pour enfants nés à partir de 2025)",
     "category": "vaccines",
     "priority": "required",
+    "schedule": {
+      "dueAgeMonths": [3, 5, 12]
+    },
     "conditions": {
-      "minAge": 0,
-      "maxAge": 2
+      "minBirthDate": "2025-01-01"
     },
     "defaultNotificationTime": "09:00"
   },
   {
-    "id": "meningococcus_b_2025",
-    "title": "Méningocoque B",
+    "id": "rotavirus_1",
+    "title": "Rotavirus - 1ère dose",
+    "description": "Vaccination contre les gastro-entérites à rotavirus à 2 mois (vaccin oral)",
     "category": "vaccines",
-    "priority": "required",
-    "conditions": {
-      "minAge": 0,
-      "maxAge": 2,
-      "minBirthDate": "2025-01-01"
+    "priority": "recommended",
+    "schedule": {
+      "dueAgeMonths": [2]
     },
+    "conditions": {},
+    "defaultNotificationTime": "09:00"
+  },
+  {
+    "id": "rotavirus_2",
+    "title": "Rotavirus - 2ème dose",
+    "description": "Vaccination contre les gastro-entérites à rotavirus à 3 mois (vaccin oral)",
+    "category": "vaccines",
+    "priority": "recommended",
+    "schedule": {
+      "dueAgeMonths": [3]
+    },
+    "conditions": {},
+    "defaultNotificationTime": "09:00"
+  },
+  {
+    "id": "rotavirus_3",
+    "title": "Rotavirus - 3ème dose",
+    "description": "Vaccination contre les gastro-entérites à rotavirus à 4 mois (vaccin oral, selon le vaccin utilisé)",
+    "category": "vaccines",
+    "priority": "recommended",
+    "schedule": {
+      "dueAgeMonths": [4]
+    },
+    "conditions": {},
+    "defaultNotificationTime": "09:00"
+  },
+  {
+    "id": "hpv_vaccination",
+    "title": "Vaccination HPV",
+    "description": "Vaccination contre les papillomavirus humains, recommandée entre 11 et 14 ans",
+    "category": "vaccines",
+    "priority": "recommended",
+    "conditions": {
+      "minAge": 11,
+      "maxAge": 14
+    },
+    "defaultNotificationTime": "09:00"
+  },
+  {
+    "id": "flu_vaccination_annual",
+    "title": "Grippe saisonnière",
+    "description": "Vaccination annuelle contre la grippe, recommandée pour les enfants à risque et à partir de 65 ans",
+    "category": "vaccines",
+    "priority": "recommended",
+    "conditions": {
+      "minAge": 6
+    },
+    "defaultNotificationTime": "09:00"
+  },
+  {
+    "id": "covid19_vaccination",
+    "title": "Covid-19",
+    "description": "Vaccination contre le Covid-19, recommandée selon les recommandations en vigueur",
+    "category": "vaccines",
+    "priority": "recommended",
+    "conditions": {
+      "minAge": 5
+    },
+    "defaultNotificationTime": "09:00"
+  },
+  {
+    "id": "zona_vaccination",
+    "title": "Zona",
+    "description": "Vaccination contre le zona, recommandée à partir de 65 ans",
+    "category": "vaccines",
+    "priority": "recommended",
+    "conditions": {
+      "minAge": 65
+    },
+    "defaultNotificationTime": "09:00"
+  },
+  {
+    "id": "vrs_vaccination",
+    "title": "VRS (Virus Respiratoire Syncytial)",
+    "description": "Protection contre le VRS pour les nourrissons (anticorps monoclonaux ou vaccination maternelle)",
+    "category": "vaccines",
+    "priority": "recommended",
+    "schedule": {
+      "dueAgeMonths": [0]
+    },
+    "conditions": {},
     "defaultNotificationTime": "09:00"
   }
 ]
