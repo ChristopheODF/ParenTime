@@ -13,6 +13,7 @@ import Testing
 struct InMemoryChildrenStoreTests {
     
     @Test("Fetch children returns empty array initially")
+    @MainActor
     func testFetchChildrenInitiallyEmpty() async throws {
         let store = InMemoryChildrenStore()
         let children = try await store.fetchChildren()
@@ -20,6 +21,7 @@ struct InMemoryChildrenStoreTests {
     }
     
     @Test("Add child increases count")
+    @MainActor
     func testAddChild() async throws {
         let store = InMemoryChildrenStore()
         let child = Child(firstName: "Alice", lastName: "Dupont")
@@ -34,6 +36,7 @@ struct InMemoryChildrenStoreTests {
     }
     
     @Test("Add multiple children")
+    @MainActor
     func testAddMultipleChildren() async throws {
         let store = InMemoryChildrenStore()
         let child1 = Child(firstName: "Alice", lastName: "Dupont")
@@ -47,6 +50,7 @@ struct InMemoryChildrenStoreTests {
     }
     
     @Test("Update child modifies existing child")
+    @MainActor
     func testUpdateChild() async throws {
         let store = InMemoryChildrenStore()
         let child = Child(firstName: "Alice", lastName: "Dupont")
@@ -65,6 +69,7 @@ struct InMemoryChildrenStoreTests {
     }
     
     @Test("Update non-existent child throws error")
+    @MainActor
     func testUpdateNonExistentChild() async throws {
         let store = InMemoryChildrenStore()
         let child = Child(firstName: "Alice", lastName: "Dupont")
@@ -78,6 +83,7 @@ struct InMemoryChildrenStoreTests {
     }
     
     @Test("Delete child removes it from store")
+    @MainActor
     func testDeleteChild() async throws {
         let store = InMemoryChildrenStore()
         let child1 = Child(firstName: "Alice", lastName: "Dupont")
@@ -94,6 +100,7 @@ struct InMemoryChildrenStoreTests {
     }
     
     @Test("Delete non-existent child throws error")
+    @MainActor
     func testDeleteNonExistentChild() async throws {
         let store = InMemoryChildrenStore()
         let nonExistentId = UUID()
@@ -107,6 +114,7 @@ struct InMemoryChildrenStoreTests {
     }
     
     @Test("Initialize with initial children")
+    @MainActor
     func testInitializeWithChildren() async throws {
         let initialChildren = [
             Child(firstName: "Alice", lastName: "Dupont"),
