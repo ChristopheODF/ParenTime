@@ -7,98 +7,102 @@
 
 import SwiftUI
 
-/// Vue de détail d'un enfant avec suggestions de rappels
+/// Vue tableau de bord d'un enfant avec suggestions et rappels prioritisés
 struct ChildDetailView: View {
     let child: Child
-    @State private var suggestions: [ReminderSuggestion] = []
+    @State private var nowItems: [DashboardItem] = []
+    @State private var upcomingItems: [DashboardItem] = []
     @State private var activatedSuggestions: Set<UUID> = []
     @State private var showingPermissionAlert = false
     @State private var permissionDeniedAlert = false
     
     private let notificationScheduler: NotificationScheduler
     private let suggestionsEngine: ReminderSuggestionsEngine
+    private let dashboardPrioritizer: DashboardPrioritizer
     
     init(
         child: Child,
         notificationScheduler: NotificationScheduler = UserNotificationScheduler(),
-        suggestionsEngine: ReminderSuggestionsEngine = ReminderSuggestionsEngine()
+        suggestionsEngine: ReminderSuggestionsEngine = ReminderSuggestionsEngine(),
+        dashboardPrioritizer: DashboardPrioritizer = DashboardPrioritizer()
     ) {
         self.child = child
         self.notificationScheduler = notificationScheduler
         self.suggestionsEngine = suggestionsEngine
+        self.dashboardPrioritizer = dashboardPrioritizer
     }
     
     var body: some View {
         List {
-            // Child information section
-            Section("Informations") {
-                HStack {
-                    Text("Nom complet")
-                        .foregroundStyle(.secondary)
-                    Spacer()
+            // Header: child info
+            Section {
+                VStack(alignment: .leading, spacing: 8) {
                     Text(child.fullName)
-                }
-                
-                if let age = child.age() {
-                    HStack {
-                        Text("Âge")
-                            .foregroundStyle(.secondary)
-                        Spacer()
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                    if let age = child.age() {
                         Text("\(age) ans")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
                     }
                 }
-                
-                HStack {
-                    Text("Date de naissance")
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(child.birthDate, style: .date)
+                .padding(.vertical, 8)
+            }
+            
+            // À faire maintenant
+            if !nowItems.isEmpty {
+                Section {
+                    ForEach(nowItems) { item in
+                        dashboardItemRow(item)
+                    }
+                } header: {
+                    Text("À faire maintenant")
                 }
             }
             
-            // Suggestions section
-            if !suggestions.isEmpty {
+            // À venir
+            if !upcomingItems.isEmpty {
                 Section {
-                    ForEach(suggestions) { suggestion in
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(suggestion.title)
-                                        .font(.headline)
-                                    Text(suggestion.description)
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                            }
-                            
-                            if activatedSuggestions.contains(suggestion.id) {
-                                HStack {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(.green)
-                                    Text("Rappel activé")
-                                        .font(.caption)
-                                        .foregroundStyle(.green)
-                                }
-                            } else {
-                                Button {
-                                    Task {
-                                        await activateSuggestion(suggestion)
-                                    }
-                                } label: {
-                                    Label("Activer le rappel", systemImage: "bell.badge")
-                                        .font(.subheadline)
-                                }
-                                .buttonStyle(.bordered)
-                            }
-                        }
-                        .padding(.vertical, 4)
+                    ForEach(upcomingItems) { item in
+                        dashboardItemRow(item)
                     }
                 } header: {
-                    Text("Suggestions de rappels")
-                } footer: {
-                    Text("Ces suggestions sont basées sur l'âge de votre enfant et les recommandations médicales.")
-                        .font(.caption)
+                    Text("À venir")
+                }
+            }
+            
+            // Domain cards
+            Section {
+                NavigationLink(destination: VaccinesView(child: child)) {
+                    domainCard(
+                        icon: "syringe",
+                        title: "Vaccins",
+                        status: "À jour"
+                    )
+                }
+                
+                NavigationLink(destination: TreatmentsView(child: child)) {
+                    domainCard(
+                        icon: "pills",
+                        title: "Traitements",
+                        status: "Aucun en cours"
+                    )
+                }
+                
+                NavigationLink(destination: AppointmentsView(child: child)) {
+                    domainCard(
+                        icon: "calendar",
+                        title: "Rendez-vous",
+                        status: "Aucun planifié"
+                    )
+                }
+                
+                NavigationLink(destination: RemindersView(child: child)) {
+                    domainCard(
+                        icon: "bell",
+                        title: "Rappels",
+                        status: "Aucun actif"
+                    )
                 }
             }
         }
@@ -120,12 +124,97 @@ struct ChildDetailView: View {
             Text("Vous avez refusé l'autorisation pour les notifications. Vous pouvez la modifier dans les paramètres.")
         }
         .onAppear {
-            loadSuggestions()
+            loadDashboardItems()
         }
     }
     
-    private func loadSuggestions() {
-        suggestions = suggestionsEngine.suggestions(for: child)
+    @ViewBuilder
+    private func dashboardItemRow(_ item: DashboardItem) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(item.title)
+                        .font(.headline)
+                    Text(item.description)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    
+                    // Show due date for reminders
+                    if let dueDate = item.dueDate {
+                        Text(dueDate, style: .date)
+                            .font(.caption)
+                            .foregroundStyle(.blue)
+                    }
+                }
+                Spacer()
+            }
+            
+            // Action button for suggestions
+            if case .suggestion(let suggestion) = item {
+                if activatedSuggestions.contains(suggestion.id) {
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                        Text("Rappel activé")
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                    }
+                } else {
+                    Button {
+                        Task {
+                            await activateSuggestion(suggestion)
+                        }
+                    } label: {
+                        Label("Activer le rappel", systemImage: "bell.badge")
+                            .font(.subheadline)
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+    
+    private func domainCard(icon: String, title: String, status: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundStyle(.blue)
+                .frame(width: 40)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.headline)
+                Text(status)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            
+            Spacer()
+            
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.vertical, 8)
+    }
+    
+    private func loadDashboardItems() {
+        // Get suggestions
+        let suggestions = suggestionsEngine.suggestions(for: child)
+        
+        // For MVP, no active reminders - placeholder empty array
+        // In the future, this would fetch from a store
+        let activeReminders: [ActiveReminder] = []
+        
+        // Combine into dashboard items
+        let allItems = suggestions.map { DashboardItem.suggestion($0) }
+            + activeReminders.map { DashboardItem.reminder($0) }
+        
+        // Prioritize
+        let prioritized = dashboardPrioritizer.prioritize(items: allItems)
+        nowItems = prioritized.now
+        upcomingItems = prioritized.upcoming
     }
     
     private func activateSuggestion(_ suggestion: ReminderSuggestion) async {
@@ -140,13 +229,9 @@ struct ChildDetailView: View {
                 if granted {
                     await scheduleNotification(for: suggestion)
                 } else {
-                    // TODO: Replace with proper logging in production (e.g., os_log)
-                    // For MVP, silent failure is acceptable as user was prompted
                     permissionDeniedAlert = true
                 }
             } catch {
-                // TODO: Replace with proper logging framework in production
-                // For MVP, show user-facing error
                 permissionDeniedAlert = true
             }
             
@@ -165,29 +250,21 @@ struct ChildDetailView: View {
     
     private func scheduleNotification(for suggestion: ReminderSuggestion) async {
         do {
-            // For MVP, schedule a notification for tomorrow at 9 AM
-            // In production, this would be configurable
             let calendar = Calendar.current
             let now = Date()
             
-            // Get tomorrow's date safely
             guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: now) else {
-                // TODO: Replace with proper logging framework (e.g., os_log) in production
-                // For MVP, silent failure is acceptable as this is extremely rare
                 return
             }
             
-            // Set the time to 9 AM
             var components = calendar.dateComponents([.year, .month, .day], from: tomorrow)
             components.hour = 9
             components.minute = 0
             
             guard let notificationDate = calendar.date(from: components) else {
-                // TODO: Replace with proper logging framework (e.g., os_log) in production
                 return
             }
             
-            // Use stable identifier based on child ID and suggestion type
             let identifier = "reminder_\(child.id.uuidString)_\(suggestion.type.rawValue)"
             
             try await notificationScheduler.scheduleNotification(
@@ -197,11 +274,9 @@ struct ChildDetailView: View {
                 at: notificationDate
             )
             
-            // Mark as activated
             activatedSuggestions.insert(suggestion.id)
         } catch {
-            // TODO: Replace with proper logging framework (e.g., os_log) in production
-            // For MVP, silent failure is acceptable
+            // Silent failure for MVP
         }
     }
 }
