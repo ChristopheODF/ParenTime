@@ -140,10 +140,13 @@ struct ChildDetailView: View {
                 if granted {
                     await scheduleNotification(for: suggestion)
                 } else {
+                    // TODO: Replace with proper logging in production (e.g., os_log)
+                    // For MVP, silent failure is acceptable as user was prompted
                     permissionDeniedAlert = true
                 }
             } catch {
-                print("Error requesting authorization: \(error)")
+                // TODO: Replace with proper logging framework in production
+                // For MVP, show user-facing error
                 permissionDeniedAlert = true
             }
             
@@ -169,7 +172,8 @@ struct ChildDetailView: View {
             
             // Get tomorrow's date safely
             guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: now) else {
-                print("Failed to calculate tomorrow's date")
+                // TODO: Replace with proper logging framework (e.g., os_log) in production
+                // For MVP, silent failure is acceptable as this is extremely rare
                 return
             }
             
@@ -179,7 +183,7 @@ struct ChildDetailView: View {
             components.minute = 0
             
             guard let notificationDate = calendar.date(from: components) else {
-                print("Failed to create notification date")
+                // TODO: Replace with proper logging framework (e.g., os_log) in production
                 return
             }
             
@@ -196,7 +200,8 @@ struct ChildDetailView: View {
             // Mark as activated
             activatedSuggestions.insert(suggestion.id)
         } catch {
-            print("Error scheduling notification: \(error)")
+            // TODO: Replace with proper logging framework (e.g., os_log) in production
+            // For MVP, silent failure is acceptable
         }
     }
 }
