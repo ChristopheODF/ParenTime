@@ -558,5 +558,44 @@ struct ReminderSuggestionsEngineTests {
         // Should NOT match because 22 is > max + 1
         #expect(!template.isApplicable(to: child, at: referenceDate, calendar: calendar))
     }
+    
+    @Test("Template with dueAgeMonths at 0 should handle tolerance correctly")
+    func testDueAgeMonths0WithTolerance() {
+        let calendar = Calendar.current
+        let referenceDate = calendar.date(from: DateComponents(year: 2026, month: 6, day: 15))!
+        
+        // Newborn (0 months old)
+        let birthDateNewborn = calendar.date(from: DateComponents(year: 2026, month: 6, day: 15))!
+        let childNewborn = Child(firstName: "Test", lastName: "Child", birthDate: birthDateNewborn)
+        
+        // 1 month old
+        let birthDate1Month = calendar.date(from: DateComponents(year: 2026, month: 5, day: 15))!
+        let child1Month = Child(firstName: "Test", lastName: "Child", birthDate: birthDate1Month)
+        
+        let template = DefaultSuggestionTemplate(
+            id: "vaccine_birth",
+            title: "Vaccin naissance",
+            category: "vaccines",
+            priority: "required",
+            conditions: DefaultSuggestionTemplate.Conditions(
+                minAge: nil,
+                maxAge: nil,
+                minBirthDate: nil,
+                maxBirthDate: nil
+            ),
+            defaultNotificationTime: "09:00",
+            description: "Vaccination à la naissance",
+            schedule: DefaultSuggestionTemplate.Schedule(
+                dueAgeMonths: [0],
+                dueAgeMonthsRange: nil
+            )
+        )
+        
+        // Newborn (0 months) should match
+        #expect(template.isApplicable(to: childNewborn, at: referenceDate, calendar: calendar))
+        
+        // 1 month old should match (within tolerance)
+        #expect(template.isApplicable(to: child1Month, at: referenceDate, calendar: calendar))
+    }
 }
 

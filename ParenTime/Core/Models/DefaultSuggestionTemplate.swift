@@ -92,7 +92,10 @@ struct DefaultSuggestionTemplate: Codable, Identifiable, Equatable {
         if let dueAgeMonths = schedule.dueAgeMonths {
             for dueMonth in dueAgeMonths {
                 // Applicable if ageInMonths is within [dueMonth-1, dueMonth+1]
-                if ageInMonths >= dueMonth - 1 && ageInMonths <= dueMonth + 1 {
+                // Use max(0, ...) to prevent matching negative ages for month 0
+                let minAge = max(0, dueMonth - 1)
+                let maxAge = dueMonth + 1
+                if ageInMonths >= minAge && ageInMonths <= maxAge {
                     return true
                 }
             }
@@ -102,7 +105,10 @@ struct DefaultSuggestionTemplate: Codable, Identifiable, Equatable {
         // Check dueAgeMonthsRange with ±1 month tolerance
         if let range = schedule.dueAgeMonthsRange {
             // Applicable if ageInMonths is within [min-1, max+1]
-            return ageInMonths >= range.min - 1 && ageInMonths <= range.max + 1
+            // Use max(0, ...) to prevent matching negative ages
+            let minAge = max(0, range.min - 1)
+            let maxAge = range.max + 1
+            return ageInMonths >= minAge && ageInMonths <= maxAge
         }
         
         // Schedule exists but no criteria specified - not applicable
