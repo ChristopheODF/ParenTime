@@ -14,6 +14,7 @@ struct ChildDetailView: View {
     @State private var allSuggestions: [ReminderSuggestion] = []
     @State private var showingPermissionAlert = false
     @State private var permissionDeniedAlert = false
+    @State private var navigateToVaccines = false
     
     private let notificationScheduler: NotificationScheduler
     private let suggestionsEngine: ReminderSuggestionsEngine
@@ -59,6 +60,9 @@ struct ChildDetailView: View {
         }
         .navigationTitle(child.firstName)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(isPresented: $navigateToVaccines) {
+            VaccinesView(child: child)
+        }
         .alert("Autorisation requise", isPresented: $showingPermissionAlert) {
             Button("Paramètres", role: .cancel) {
                 if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
@@ -169,7 +173,10 @@ struct ChildDetailView: View {
     
     private func domainCard(title: String, icon: String, color: Color) -> some View {
         Button {
-            // Stub - domain navigation not implemented yet
+            if title == "Vaccins" {
+                navigateToVaccines = true
+            }
+            // Other domains can be implemented later
         } label: {
             VStack(spacing: 8) {
                 Image(systemName: icon)

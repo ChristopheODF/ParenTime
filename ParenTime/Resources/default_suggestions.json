@@ -282,17 +282,6 @@
     "defaultNotificationTime": "09:00"
   },
   {
-    "id": "flu_vaccination_annual",
-    "title": "Grippe saisonnière",
-    "description": "Vaccination annuelle contre la grippe, recommandée pour les enfants à risque et à partir de 65 ans",
-    "category": "vaccines",
-    "priority": "recommended",
-    "conditions": {
-      "minAge": 6
-    },
-    "defaultNotificationTime": "09:00"
-  },
-  {
     "id": "covid19_vaccination",
     "title": "Covid-19",
     "description": "Vaccination contre le Covid-19, recommandée selon les recommandations en vigueur",
