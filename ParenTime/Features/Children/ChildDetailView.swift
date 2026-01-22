@@ -330,7 +330,7 @@ struct ChildDetailView: View {
             try await notificationScheduler.scheduleNotification(
                 identifier: identifier,
                 title: suggestion.title,
-                body: "Rappel pour \(child.firstName): \(suggestion.title)",
+                body: "N'oubliez pas de prendre rendez-vous pour \(child.firstName). Catégorie : \(suggestion.category.rawValue)",
                 at: notificationDate
             )
             

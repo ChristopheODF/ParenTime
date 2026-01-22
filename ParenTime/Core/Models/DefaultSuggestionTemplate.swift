@@ -57,7 +57,7 @@ struct DefaultSuggestionTemplate: Codable, Identifiable, Equatable {
         
         if let maxBirthDateString = conditions.maxBirthDate,
            let maxBirthDate = parseDate(maxBirthDateString) {
-            if birthDate >= maxBirthDate {
+            if birthDate > maxBirthDate {
                 return false
             }
         }

@@ -10,6 +10,8 @@ import Foundation
 /// Service pour générer des suggestions de rappels basées sur l'âge de l'enfant
 /// Cette implémentation est pure et testable (pas de side effects)
 struct ReminderSuggestionsEngine {
+    private static let defaultSuggestionsFileName = "default_suggestions"
+    
     private let calendar: Calendar
     private let referenceDate: Date
     private let templates: [DefaultSuggestionTemplate]
@@ -27,7 +29,7 @@ struct ReminderSuggestionsEngine {
     
     /// Load templates from JSON file
     private static func loadTemplates() -> [DefaultSuggestionTemplate] {
-        guard let url = Bundle.main.url(forResource: "default_suggestions", withExtension: "json") else {
+        guard let url = Bundle.main.url(forResource: defaultSuggestionsFileName, withExtension: "json") else {
             return []
         }
         
