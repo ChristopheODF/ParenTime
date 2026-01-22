@@ -216,7 +216,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-			,
 				8EE8252C4087480B8AEFC0D4 /* default_suggestions.json in Resources */);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -224,7 +223,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-			,
 				8EE8252C4087480B8AEFC0D4 /* default_suggestions.json in Resources */);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -232,7 +230,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-			,
 				8EE8252C4087480B8AEFC0D4 /* default_suggestions.json in Resources */);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -243,7 +240,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-			,
 				DB8E96766A5544BD938F64CB /* DefaultSuggestionTemplate.swift in Sources */,
 				406219B20F984ADD8A0F35E3 /* SuggestionStateStore.swift in Sources */);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -252,7 +248,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-			,
 				DB8E96766A5544BD938F64CB /* DefaultSuggestionTemplate.swift in Sources */,
 				406219B20F984ADD8A0F35E3 /* SuggestionStateStore.swift in Sources */);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -261,7 +256,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-			,
 				DB8E96766A5544BD938F64CB /* DefaultSuggestionTemplate.swift in Sources */,
 				406219B20F984ADD8A0F35E3 /* SuggestionStateStore.swift in Sources */);
 			runOnlyForDeploymentPostprocessing = 0;
