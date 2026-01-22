@@ -12,22 +12,33 @@ struct AddChildView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var firstName = ""
     @State private var lastName = ""
+    @State private var birthDate = Date()
     
-    let onAdd: (String, String) -> Void
+    let onAdd: (String, String, Date) -> Void
     
     var body: some View {
         NavigationStack {
             Form {
-                Section {
+                Section("Informations") {
                     TextField("Prénom", text: $firstName)
                         .textContentType(.givenName)
                     TextField("Nom", text: $lastName)
                         .textContentType(.familyName)
                 }
                 
+                Section("Date de naissance") {
+                    DatePicker(
+                        "Date de naissance",
+                        selection: $birthDate,
+                        in: ...Date(),
+                        displayedComponents: .date
+                    )
+                    .datePickerStyle(.compact)
+                }
+                
                 Section {
                     Button("Ajouter") {
-                        onAdd(firstName, lastName)
+                        onAdd(firstName, lastName, birthDate)
                         dismiss()
                     }
                     .disabled(firstName.isEmpty || lastName.isEmpty)
@@ -48,7 +59,7 @@ struct AddChildView: View {
 }
 
 #Preview {
-    AddChildView { firstName, lastName in
-        print("Add child: \(firstName) \(lastName)")
+    AddChildView { firstName, lastName, birthDate in
+        print("Add child: \(firstName) \(lastName), born \(birthDate)")
     }
 }

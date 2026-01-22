@@ -182,3 +182,103 @@ Les tests utilisent le framework Swift Testing (iOS 17+).
 - [ ] Fonctionnalité de rappels par enfant
 - [ ] Notifications locales
 - [ ] Widgets
+
+## Suggestions et Rappels
+
+### Vue d'ensemble
+
+Le système de suggestions et rappels fonctionne en deux phases :
+
+1. **Suggestions (templates)** : Propositions automatiques basées sur l'âge de l'enfant
+2. **Rappels activés** : Notifications programmées après acceptation par l'utilisateur
+
+### Architecture
+
+```
+Child (âge) → ReminderSuggestionsEngine → [ReminderSuggestion]
+                                                    ↓
+                                          User accepts suggestion
+                                                    ↓
+                                          NotificationScheduler → UNUserNotificationCenter
+```
+
+### Composants
+
+#### ReminderSuggestion
+Structure représentant une suggestion de rappel :
+- `type` : Type de suggestion (ex: `hpvVaccination`)
+- `title` : Titre affiché à l'utilisateur
+- `description` : Description détaillée
+- `ageRange` : Plage d'âge applicable
+
+#### ReminderSuggestionsEngine
+Service pur et testable qui génère des suggestions :
+- Entrée : `Child` + `Date` (référence) + `Calendar`
+- Sortie : `[ReminderSuggestion]`
+- Logique métier : contient les règles de suggestion
+
+**Règles actuelles :**
+- HPV : Si âge ∈ [11, 14] → suggérer vaccination HPV
+
+**Comment étendre les règles :**
+1. Ajouter un nouveau `ReminderSuggestionType` dans l'enum
+2. Créer une suggestion prédéfinie (extension)
+3. Ajouter la logique dans `suggestions(for:)` de l'engine
+4. Ajouter des tests unitaires
+
+Exemple :
+```swift
+// 1. Nouveau type
+enum ReminderSuggestionType {
+    case hpvVaccination
+    case dentalCheckup  // ← nouveau
+}
+
+// 2. Suggestion prédéfinie
+extension ReminderSuggestion {
+    static let dentalCheckup = ReminderSuggestion(
+        type: .dentalCheckup,
+        title: "Contrôle dentaire",
+        description: "Un contrôle dentaire annuel est recommandé.",
+        ageRange: 3...18
+    )
+}
+
+// 3. Logique dans l'engine
+if ReminderSuggestion.dentalCheckup.ageRange.contains(age) {
+    suggestions.append(.dentalCheckup)
+}
+
+// 4. Tests
+@Test func testDentalCheckupSuggestion() { ... }
+```
+
+#### NotificationScheduler
+Protocole pour gérer les notifications locales :
+- `requestAuthorization()` : Demande permission utilisateur
+- `scheduleNotification()` : Programme une notification
+- `cancelNotification()` : Annule une notification
+- `authorizationStatus()` : Vérifie le statut d'autorisation
+
+**Implémentation actuelle :** `UserNotificationScheduler`
+- Utilise `UNUserNotificationCenter` (iOS)
+- Supporte les notifications même app fermée
+- Identifiants stables : `reminder_{childId}_{suggestionType}`
+
+### Notes sur les notifications locales
+
+**État actuel (MVP 1) :**
+- Notification programmée pour le lendemain à 9h (temporaire)
+- Pas de persistance des rappels activés
+- Interface minimale pour validation du concept
+
+**Améliorations futures :**
+- Permettre à l'utilisateur de choisir date/heure
+- Persister l'état des rappels activés (SwiftData)
+- Notifications récurrentes (ex: rappel annuel)
+- Gestion des rappels dans une vue dédiée
+- Badge sur l'icône de l'app
+
+**Permissions iOS :**
+L'app demande l'autorisation au moment de l'activation d'un rappel.
+Si refusé, un message guide l'utilisateur vers les Paramètres.

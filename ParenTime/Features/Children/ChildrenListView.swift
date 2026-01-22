@@ -35,9 +35,9 @@ struct ChildrenListView: View {
                 }
             }
             .sheet(isPresented: $viewModel.showingAddSheet) {
-                AddChildView { firstName, lastName in
+                AddChildView { firstName, lastName, birthDate in
                     Task {
-                        await viewModel.addChild(firstName: firstName, lastName: lastName)
+                        await viewModel.addChild(firstName: firstName, lastName: lastName, birthDate: birthDate)
                     }
                 }
             }
@@ -73,9 +73,18 @@ struct ChildrenListView: View {
     private var childrenList: some View {
         List {
             ForEach(viewModel.children) { child in
-                Text(child.fullName)
-                    .font(.headline)
+                NavigationLink(destination: ChildDetailView(child: child)) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(child.fullName)
+                            .font(.headline)
+                        if let age = child.age() {
+                            Text("\(age) ans")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                     .padding(.vertical, 4)
+                }
             }
             .onDelete { offsets in
                 Task {
@@ -88,7 +97,7 @@ struct ChildrenListView: View {
 
 #Preview {
     ChildrenListView(childrenStore: InMemoryChildrenStore(initialChildren: [
-        Child(firstName: "Alice", lastName: "Dupont"),
-        Child(firstName: "Bob", lastName: "Martin")
+        Child(firstName: "Alice", lastName: "Dupont", birthDate: Calendar.current.date(byAdding: .year, value: -12, to: Date())!),
+        Child(firstName: "Bob", lastName: "Martin", birthDate: Calendar.current.date(byAdding: .year, value: -8, to: Date())!)
     ]))
 }
