@@ -36,8 +36,8 @@ final class ChildrenViewModel: ObservableObject {
         isLoading = false
     }
     
-    func addChild(firstName: String, lastName: String) async {
-        let newChild = Child(firstName: firstName, lastName: lastName)
+    func addChild(firstName: String, lastName: String, birthDate: Date) async {
+        let newChild = Child(firstName: firstName, lastName: lastName, birthDate: birthDate)
         
         do {
             try await childrenStore.addChild(newChild)

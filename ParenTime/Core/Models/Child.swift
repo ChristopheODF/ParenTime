@@ -12,14 +12,28 @@ struct Child: Identifiable, Codable, Equatable {
     let id: UUID
     var firstName: String
     var lastName: String
+    var birthDate: Date
     
-    init(id: UUID = UUID(), firstName: String, lastName: String) {
+    init(id: UUID = UUID(), firstName: String, lastName: String, birthDate: Date) {
         self.id = id
         self.firstName = firstName
         self.lastName = lastName
+        self.birthDate = birthDate
     }
     
     var fullName: String {
         "\(firstName) \(lastName)"
+    }
+    
+    /// Calculate the age of the child at a given date
+    /// - Parameters:
+    ///   - date: The reference date for age calculation (defaults to now)
+    ///   - calendar: The calendar to use for calculation (defaults to current)
+    /// - Returns: The age in years (always >= 0), or nil if calculation fails
+    func age(at date: Date = Date(), calendar: Calendar = .current) -> Int? {
+        let ageComponents = calendar.dateComponents([.year], from: birthDate, to: date)
+        guard let years = ageComponents.year else { return nil }
+        // Ensure age is non-negative (handles case where birthDate is in the future)
+        return max(0, years)
     }
 }

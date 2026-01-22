@@ -13,7 +13,6 @@ import Testing
 struct InMemoryChildrenStoreTests {
     
     @Test("Fetch children returns empty array initially")
-    @MainActor
     func testFetchChildrenInitiallyEmpty() async throws {
         let store = InMemoryChildrenStore()
         let children = try await store.fetchChildren()
@@ -21,10 +20,10 @@ struct InMemoryChildrenStoreTests {
     }
     
     @Test("Add child increases count")
-    @MainActor
     func testAddChild() async throws {
         let store = InMemoryChildrenStore()
-        let child = Child(firstName: "Alice", lastName: "Dupont")
+        let birthDate = Calendar.current.date(byAdding: .year, value: -10, to: Date())!
+        let child = Child(firstName: "Alice", lastName: "Dupont", birthDate: birthDate)
         
         try await store.addChild(child)
         let children = try await store.fetchChildren()
@@ -33,14 +32,16 @@ struct InMemoryChildrenStoreTests {
         #expect(children[0].id == child.id)
         #expect(children[0].firstName == "Alice")
         #expect(children[0].lastName == "Dupont")
+        #expect(children[0].birthDate == birthDate)
     }
     
     @Test("Add multiple children")
-    @MainActor
     func testAddMultipleChildren() async throws {
         let store = InMemoryChildrenStore()
-        let child1 = Child(firstName: "Alice", lastName: "Dupont")
-        let child2 = Child(firstName: "Bob", lastName: "Martin")
+        let birthDate1 = Calendar.current.date(byAdding: .year, value: -10, to: Date())!
+        let birthDate2 = Calendar.current.date(byAdding: .year, value: -8, to: Date())!
+        let child1 = Child(firstName: "Alice", lastName: "Dupont", birthDate: birthDate1)
+        let child2 = Child(firstName: "Bob", lastName: "Martin", birthDate: birthDate2)
         
         try await store.addChild(child1)
         try await store.addChild(child2)
@@ -50,10 +51,10 @@ struct InMemoryChildrenStoreTests {
     }
     
     @Test("Update child modifies existing child")
-    @MainActor
     func testUpdateChild() async throws {
         let store = InMemoryChildrenStore()
-        let child = Child(firstName: "Alice", lastName: "Dupont")
+        let birthDate = Calendar.current.date(byAdding: .year, value: -10, to: Date())!
+        let child = Child(firstName: "Alice", lastName: "Dupont", birthDate: birthDate)
         
         try await store.addChild(child)
         
@@ -69,10 +70,10 @@ struct InMemoryChildrenStoreTests {
     }
     
     @Test("Update non-existent child throws error")
-    @MainActor
     func testUpdateNonExistentChild() async throws {
         let store = InMemoryChildrenStore()
-        let child = Child(firstName: "Alice", lastName: "Dupont")
+        let birthDate = Calendar.current.date(byAdding: .year, value: -10, to: Date())!
+        let child = Child(firstName: "Alice", lastName: "Dupont", birthDate: birthDate)
         
         do {
             try await store.updateChild(child)
@@ -83,11 +84,12 @@ struct InMemoryChildrenStoreTests {
     }
     
     @Test("Delete child removes it from store")
-    @MainActor
     func testDeleteChild() async throws {
         let store = InMemoryChildrenStore()
-        let child1 = Child(firstName: "Alice", lastName: "Dupont")
-        let child2 = Child(firstName: "Bob", lastName: "Martin")
+        let birthDate1 = Calendar.current.date(byAdding: .year, value: -10, to: Date())!
+        let birthDate2 = Calendar.current.date(byAdding: .year, value: -8, to: Date())!
+        let child1 = Child(firstName: "Alice", lastName: "Dupont", birthDate: birthDate1)
+        let child2 = Child(firstName: "Bob", lastName: "Martin", birthDate: birthDate2)
         
         try await store.addChild(child1)
         try await store.addChild(child2)
@@ -100,7 +102,6 @@ struct InMemoryChildrenStoreTests {
     }
     
     @Test("Delete non-existent child throws error")
-    @MainActor
     func testDeleteNonExistentChild() async throws {
         let store = InMemoryChildrenStore()
         let nonExistentId = UUID()
@@ -114,11 +115,12 @@ struct InMemoryChildrenStoreTests {
     }
     
     @Test("Initialize with initial children")
-    @MainActor
     func testInitializeWithChildren() async throws {
+        let birthDate1 = Calendar.current.date(byAdding: .year, value: -10, to: Date())!
+        let birthDate2 = Calendar.current.date(byAdding: .year, value: -8, to: Date())!
         let initialChildren = [
-            Child(firstName: "Alice", lastName: "Dupont"),
-            Child(firstName: "Bob", lastName: "Martin")
+            Child(firstName: "Alice", lastName: "Dupont", birthDate: birthDate1),
+            Child(firstName: "Bob", lastName: "Martin", birthDate: birthDate2)
         ]
         let store = InMemoryChildrenStore(initialChildren: initialChildren)
         
@@ -130,7 +132,8 @@ struct InMemoryChildrenStoreTests {
     
     @Test("Full name is computed correctly")
     func testChildFullName() {
-        let child = Child(firstName: "Alice", lastName: "Dupont")
+        let birthDate = Calendar.current.date(byAdding: .year, value: -10, to: Date())!
+        let child = Child(firstName: "Alice", lastName: "Dupont", birthDate: birthDate)
         #expect(child.fullName == "Alice Dupont")
     }
 }
