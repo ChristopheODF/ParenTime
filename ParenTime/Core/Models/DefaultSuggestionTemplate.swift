@@ -105,6 +105,8 @@ struct DefaultSuggestionTemplate: Codable, Identifiable, Equatable {
             return ageInMonths >= range.min - 1 && ageInMonths <= range.max + 1
         }
         
+        // Schedule exists but no criteria specified - not applicable
+        // Note: A valid schedule should have at least one of dueAgeMonths or dueAgeMonthsRange
         return false
     }
     

@@ -57,7 +57,8 @@
       "dueAgeMonths": [72]
     },
     "conditions": {},
-    "defaultNotificationTime": "09:00"
+    "defaultNotificationTime": "09:00",
+    "_comment": "72 months = 6 years"
   },
   {
     "id": "hib_1",
