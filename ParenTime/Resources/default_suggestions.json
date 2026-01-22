@@ -280,50 +280,5 @@
       "maxAge": 14
     },
     "defaultNotificationTime": "09:00"
-  },
-  {
-    "id": "flu_vaccination_annual",
-    "title": "Grippe saisonnière",
-    "description": "Vaccination annuelle contre la grippe, recommandée pour les enfants à risque et à partir de 65 ans",
-    "category": "vaccines",
-    "priority": "recommended",
-    "conditions": {
-      "minAge": 6
-    },
-    "defaultNotificationTime": "09:00"
-  },
-  {
-    "id": "covid19_vaccination",
-    "title": "Covid-19",
-    "description": "Vaccination contre le Covid-19, recommandée selon les recommandations en vigueur",
-    "category": "vaccines",
-    "priority": "recommended",
-    "conditions": {
-      "minAge": 5
-    },
-    "defaultNotificationTime": "09:00"
-  },
-  {
-    "id": "zona_vaccination",
-    "title": "Zona",
-    "description": "Vaccination contre le zona, recommandée à partir de 65 ans",
-    "category": "vaccines",
-    "priority": "recommended",
-    "conditions": {
-      "minAge": 65
-    },
-    "defaultNotificationTime": "09:00"
-  },
-  {
-    "id": "vrs_vaccination",
-    "title": "VRS (Virus Respiratoire Syncytial)",
-    "description": "Protection contre le VRS pour les nourrissons (anticorps monoclonaux ou vaccination maternelle)",
-    "category": "vaccines",
-    "priority": "recommended",
-    "schedule": {
-      "dueAgeMonths": [0]
-    },
-    "conditions": {},
-    "defaultNotificationTime": "09:00"
   }
 ]

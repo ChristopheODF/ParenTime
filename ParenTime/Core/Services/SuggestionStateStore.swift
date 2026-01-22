@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 /// Store for managing suggestion states (ignored/activated)
 /// For MVP, this is in-memory only. Future versions should persist to disk.
