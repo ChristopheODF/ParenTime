@@ -597,5 +597,30 @@ struct ReminderSuggestionsEngineTests {
         // 1 month old should match (within tolerance)
         #expect(template.isApplicable(to: child1Month, at: referenceDate, calendar: calendar))
     }
+    
+    // MARK: - Flu Vaccination Removal Tests
+    
+    @Test("Flu vaccination should not be present in default templates")
+    func testFluVaccinationNotPresent() {
+        let engine = ReminderSuggestionsEngine()
+        let child = createChild(yearsOld: 12)
+        
+        let suggestions = engine.suggestions(for: child)
+        let fluSuggestions = suggestions.filter { $0.templateId == "flu_vaccination_annual" }
+        
+        #expect(fluSuggestions.isEmpty, "Flu vaccination should not be present in suggestions")
+    }
+    
+    @Test("Child aged 12 should not receive flu vaccination suggestion")
+    func testChild12NoFluVaccination() {
+        let referenceDate = Date()
+        let child = createChild(yearsOld: 12, referenceDate: referenceDate)
+        let engine = ReminderSuggestionsEngine(referenceDate: referenceDate)
+        
+        let suggestions = engine.suggestions(for: child)
+        let fluSuggestions = suggestions.filter { $0.title.lowercased().contains("grippe") }
+        
+        #expect(fluSuggestions.isEmpty, "12-year-old child should not receive flu vaccination suggestion")
+    }
 }
 
