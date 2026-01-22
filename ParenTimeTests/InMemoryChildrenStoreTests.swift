@@ -92,6 +92,19 @@ struct InMemoryChildrenStoreTests {
         #expect(children[0].id == child2.id)
     }
     
+    @Test("Delete non-existent child throws error")
+    func testDeleteNonExistentChild() async throws {
+        let store = InMemoryChildrenStore()
+        let nonExistentId = UUID()
+        
+        do {
+            try await store.deleteChild(id: nonExistentId)
+            Issue.record("Expected error but none was thrown")
+        } catch {
+            // Expected error
+        }
+    }
+    
     @Test("Initialize with initial children")
     func testInitializeWithChildren() async throws {
         let initialChildren = [

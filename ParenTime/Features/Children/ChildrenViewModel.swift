@@ -47,16 +47,18 @@ final class ChildrenViewModel: ObservableObject {
     }
     
     func deleteChild(at offsets: IndexSet) async {
-        for index in offsets {
-            let child = children[index]
+        // Collect children to delete before processing
+        let childrenToDelete = offsets.map { children[$0] }
+        
+        for child in childrenToDelete {
             do {
                 try await childrenStore.deleteChild(id: child.id)
             } catch {
                 errorMessage = "Erreur lors de la suppression: \(error.localizedDescription)"
-                await loadChildren()
-                return
+                break
             }
         }
+        
         await loadChildren()
     }
 }
