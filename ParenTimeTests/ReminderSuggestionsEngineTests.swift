@@ -618,7 +618,7 @@ struct ReminderSuggestionsEngineTests {
         let engine = ReminderSuggestionsEngine(referenceDate: referenceDate)
         
         let suggestions = engine.suggestions(for: child)
-        let fluSuggestions = suggestions.filter { $0.title.lowercased().contains("grippe") }
+        let fluSuggestions = suggestions.filter { $0.templateId == "flu_vaccination_annual" }
         
         #expect(fluSuggestions.isEmpty, "12-year-old child should not receive flu vaccination suggestion")
     }
