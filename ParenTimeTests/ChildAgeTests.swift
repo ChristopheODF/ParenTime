@@ -91,4 +91,17 @@ struct ChildAgeTests {
         #expect(age != nil)
         #expect(age! >= 9 && age! <= 10)
     }
+    
+    @Test("Age returns 0 for future birthdates")
+    func testFutureBirthDate() {
+        let calendar = Calendar.current
+        let now = Date()
+        let futureBirthDate = calendar.date(byAdding: .year, value: 1, to: now)!
+        let child = Child(firstName: "Test", lastName: "Future", birthDate: futureBirthDate)
+        
+        let age = child.age(at: now, calendar: calendar)
+        
+        // Should return 0, not negative
+        #expect(age == 0)
+    }
 }

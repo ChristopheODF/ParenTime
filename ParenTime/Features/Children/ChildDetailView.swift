@@ -165,11 +165,16 @@ struct ChildDetailView: View {
             // For MVP, schedule a notification for tomorrow at 9 AM
             // In production, this would be configurable
             var components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: Date())
-            components.day! += 1
+            guard let currentDay = components.day else {
+                print("Failed to get current day for notification scheduling")
+                return
+            }
+            components.day = currentDay + 1
             components.hour = 9
             components.minute = 0
             
             guard let notificationDate = Calendar.current.date(from: components) else {
+                print("Failed to create notification date")
                 return
             }
             

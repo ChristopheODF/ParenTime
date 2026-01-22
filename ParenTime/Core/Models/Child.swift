@@ -29,9 +29,11 @@ struct Child: Identifiable, Codable, Equatable {
     /// - Parameters:
     ///   - date: The reference date for age calculation (defaults to now)
     ///   - calendar: The calendar to use for calculation (defaults to current)
-    /// - Returns: The age in years, or nil if calculation fails
+    /// - Returns: The age in years (always >= 0), or nil if calculation fails
     func age(at date: Date = Date(), calendar: Calendar = .current) -> Int? {
         let ageComponents = calendar.dateComponents([.year], from: birthDate, to: date)
-        return ageComponents.year
+        guard let years = ageComponents.year else { return nil }
+        // Ensure age is non-negative (handles case where birthDate is in the future)
+        return max(0, years)
     }
 }

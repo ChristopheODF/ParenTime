@@ -12,7 +12,10 @@ struct AddChildView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var firstName = ""
     @State private var lastName = ""
-    @State private var birthDate = Date()
+    @State private var birthDate: Date = {
+        // Default to 10 years ago for better UX
+        Calendar.current.date(byAdding: .year, value: -10, to: Date()) ?? Date()
+    }()
     
     let onAdd: (String, String, Date) -> Void
     
