@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 
 /// Conteneur de dépendances pour l'application
 /// Centralise l'instanciation et la gestion des services
