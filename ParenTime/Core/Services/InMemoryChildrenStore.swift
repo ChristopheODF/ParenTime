@@ -9,29 +9,22 @@ import Foundation
 
 /// Implémentation en mémoire du store d'enfants
 /// Utile pour le développement et les tests sans persistance
-final class InMemoryChildrenStore: ChildrenStore {
+actor InMemoryChildrenStore: ChildrenStore {
     private var children: [Child] = []
-    private let lock = NSLock()
     
     init(initialChildren: [Child] = []) {
         self.children = initialChildren
     }
     
     func fetchChildren() async throws -> [Child] {
-        lock.lock()
-        defer { lock.unlock() }
         return children
     }
     
     func addChild(_ child: Child) async throws {
-        lock.lock()
-        defer { lock.unlock() }
         children.append(child)
     }
     
     func updateChild(_ child: Child) async throws {
-        lock.lock()
-        defer { lock.unlock() }
         guard let index = children.firstIndex(where: { $0.id == child.id }) else {
             throw NSError(domain: "InMemoryChildrenStore", code: 404, 
                          userInfo: [NSLocalizedDescriptionKey: "Child not found"])
@@ -40,8 +33,6 @@ final class InMemoryChildrenStore: ChildrenStore {
     }
     
     func deleteChild(id: UUID) async throws {
-        lock.lock()
-        defer { lock.unlock() }
         guard let index = children.firstIndex(where: { $0.id == id }) else {
             throw NSError(domain: "InMemoryChildrenStore", code: 404, 
                          userInfo: [NSLocalizedDescriptionKey: "Child not found"])
