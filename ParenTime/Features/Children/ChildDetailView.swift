@@ -12,6 +12,7 @@ struct ChildDetailView: View {
     let child: Child
     @StateObject private var suggestionStateStore: SuggestionStateStore
     @State private var allSuggestions: [ReminderSuggestion] = []
+    @State private var upcomingEvents: [UpcomingEvent] = []
     @State private var showingPermissionAlert = false
     @State private var permissionDeniedAlert = false
     
@@ -35,7 +36,8 @@ struct ChildDetailView: View {
     }
     
     private var toDoNow: [ReminderSuggestion] {
-        Array(activeSuggestions.prefix(3))
+        // Only show required priority suggestions
+        activeSuggestions.filter { $0.priority == .required }
     }
     
     var body: some View {
@@ -76,6 +78,7 @@ struct ChildDetailView: View {
         }
         .onAppear {
             loadSuggestions()
+            loadUpcomingEvents()
         }
     }
     
@@ -126,27 +129,33 @@ struct ChildDetailView: View {
                     .font(.headline)
             }
             
-            // For MVP, show placeholder or activated suggestions count
-            let activatedCount = suggestionStateStore.activatedSuggestions[child.id]?.count ?? 0
-            if activatedCount > 0 {
-                HStack {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                    Text("\(activatedCount) rappel(s) activé(s)")
-                        .font(.subheadline)
-                }
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(.systemGray6))
-                .cornerRadius(8)
-            } else {
-                Text("Aucun événement planifié")
+            // Show only titles of upcoming events in the next 12 months
+            if upcomingEvents.isEmpty {
+                Text("Aucun événement à venir")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .padding()
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color(.systemGray6))
                     .cornerRadius(8)
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(upcomingEvents) { event in
+                        HStack {
+                            Text(event.title)
+                                .font(.subheadline)
+                            Spacer()
+                            Text(event.dueDate, style: .date)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(.systemGray6))
+                .cornerRadius(8)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -158,32 +167,50 @@ struct ChildDetailView: View {
                 .font(.headline)
             
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                domainCard(title: "Vaccins", icon: "cross.case.fill", color: .blue)
-                domainCard(title: "Traitements", icon: "pills.fill", color: .green)
-                domainCard(title: "Rendez-vous", icon: "calendar.badge.clock", color: .orange)
-                domainCard(title: "Rappels", icon: "bell.fill", color: .purple)
+                NavigationLink {
+                    VaccinesView(child: child, suggestionsEngine: suggestionsEngine)
+                } label: {
+                    domainCardContent(title: "Vaccins", icon: "cross.case.fill", color: .blue)
+                }
+                
+                // TODO: Implement Traitements feature
+                Button {
+                    // Placeholder for Traitements
+                } label: {
+                    domainCardContent(title: "Traitements", icon: "pills.fill", color: .green)
+                }
+                
+                // TODO: Implement Rendez-vous feature
+                Button {
+                    // Placeholder for Rendez-vous
+                } label: {
+                    domainCardContent(title: "Rendez-vous", icon: "calendar.badge.clock", color: .orange)
+                }
+                
+                // TODO: Implement Rappels feature
+                Button {
+                    // Placeholder for Rappels
+                } label: {
+                    domainCardContent(title: "Rappels", icon: "bell.fill", color: .purple)
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
     
-    private func domainCard(title: String, icon: String, color: Color) -> some View {
-        Button {
-            // Stub - domain navigation not implemented yet
-        } label: {
-            VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.title)
-                    .foregroundStyle(color)
-                Text(title)
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(Color(.systemGray6))
-            .cornerRadius(12)
+    private func domainCardContent(title: String, icon: String, color: Color) -> some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.title)
+                .foregroundStyle(color)
+            Text(title)
+                .font(.subheadline)
+                .foregroundStyle(.primary)
         }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
     }
     
     private func suggestionCard(_ suggestion: ReminderSuggestion) -> some View {
@@ -274,6 +301,11 @@ struct ChildDetailView: View {
     
     private func loadSuggestions() {
         allSuggestions = suggestionsEngine.suggestions(for: child)
+    }
+    
+    private func loadUpcomingEvents() {
+        // Load upcoming events within 12 months
+        upcomingEvents = suggestionsEngine.upcomingEvents(for: child, maxMonthsInFuture: 12)
     }
     
     private func ignoreSuggestion(_ suggestion: ReminderSuggestion) {
