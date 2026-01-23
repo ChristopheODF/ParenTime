@@ -13,21 +13,26 @@ struct ChildDetailView: View {
     @StateObject private var suggestionStateStore: SuggestionStateStore
     @State private var allSuggestions: [ReminderSuggestion] = []
     @State private var upcomingEvents: [UpcomingEvent] = []
+    @State private var overdueEvents: [UpcomingEvent] = []
+    @State private var scheduledReminders: [ScheduledReminder] = []
     @State private var showingPermissionAlert = false
     @State private var permissionDeniedAlert = false
     
     private let notificationScheduler: NotificationScheduler
     private let suggestionsEngine: ReminderSuggestionsEngine
+    private let remindersStore: RemindersStore
     
     init(
         child: Child,
         notificationScheduler: NotificationScheduler = UserNotificationScheduler(),
         suggestionsEngine: ReminderSuggestionsEngine = ReminderSuggestionsEngine(),
-        suggestionStateStore: SuggestionStateStore = AppContainer.shared.suggestionStateStore
+        suggestionStateStore: SuggestionStateStore = AppContainer.shared.suggestionStateStore,
+        remindersStore: RemindersStore = AppContainer.shared.remindersStore
     ) {
         self.child = child
         self.notificationScheduler = notificationScheduler
         self.suggestionsEngine = suggestionsEngine
+        self.remindersStore = remindersStore
         _suggestionStateStore = StateObject(wrappedValue: suggestionStateStore)
     }
     
@@ -40,6 +45,14 @@ struct ChildDetailView: View {
         activeSuggestions.filter { $0.priority == .required }
     }
     
+    private var overdueReminders: [ScheduledReminder] {
+        scheduledReminders.filter { $0.isOverdue() && $0.priority == .required && !$0.isCompleted }
+    }
+    
+    private var hasToDoItems: Bool {
+        !toDoNow.isEmpty || !overdueReminders.isEmpty
+    }
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
@@ -47,7 +60,7 @@ struct ChildDetailView: View {
                 headerSection
                 
                 // À faire maintenant section
-                if !toDoNow.isEmpty {
+                if hasToDoItems {
                     toDoNowSection
                 }
                 
@@ -77,8 +90,9 @@ struct ChildDetailView: View {
             Text("Vous avez refusé l'autorisation pour les notifications. Vous pouvez la modifier dans les paramètres.")
         }
         .onAppear {
-            loadSuggestions()
-            loadUpcomingEvents()
+            Task {
+                await loadData()
+            }
         }
     }
     
@@ -113,6 +127,12 @@ struct ChildDetailView: View {
                     .font(.headline)
             }
             
+            // Show overdue reminders first
+            ForEach(overdueReminders) { reminder in
+                overdueReminderCard(reminder)
+            }
+            
+            // Then show current suggestions
             ForEach(toDoNow) { suggestion in
                 suggestionCard(suggestion)
             }
@@ -280,6 +300,60 @@ struct ChildDetailView: View {
             .cornerRadius(4)
     }
     
+    private func overdueReminderCard(_ reminder: ScheduledReminder) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(reminder.title)
+                        .font(.subheadline)
+                        .bold()
+                    
+                    // Display late since text
+                    if let lateSince = reminder.lateSinceText() {
+                        Text(lateSince)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                            .bold()
+                    }
+                    
+                    // Display description if available
+                    if let description = reminder.description {
+                        Text(description)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    HStack(spacing: 4) {
+                        priorityBadge(reminder.priority)
+                        categoryBadge(reminder.category)
+                    }
+                }
+                Spacer()
+            }
+            
+            HStack(spacing: 8) {
+                Button {
+                    Task {
+                        await markCompleted(reminder)
+                    }
+                } label: {
+                    Label("C'est bon, c'est fait", systemImage: "checkmark.circle")
+                        .font(.caption)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.green)
+            }
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(8)
+        .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.red.opacity(0.3), lineWidth: 2)
+        )
+    }
+    
     private func categoryBadge(_ category: SuggestionCategory) -> some View {
         let text: String = {
             switch category {
@@ -299,13 +373,40 @@ struct ChildDetailView: View {
             .cornerRadius(4)
     }
     
+    private func loadData() async {
+        loadSuggestions()
+        loadUpcomingEvents()
+        await loadScheduledReminders()
+    }
+    
     private func loadSuggestions() {
         allSuggestions = suggestionsEngine.suggestions(for: child)
     }
     
     private func loadUpcomingEvents() {
-        // Load upcoming events within 12 months
-        upcomingEvents = suggestionsEngine.upcomingEvents(for: child, maxMonthsInFuture: 12)
+        // Load upcoming events within 12 months, only next occurrence per vaccine/series
+        upcomingEvents = suggestionsEngine.nextOccurrencePerTemplate(for: child, maxMonthsInFuture: 12)
+        
+        // Also load overdue events for "À faire maintenant"
+        overdueEvents = suggestionsEngine.overdueEvents(for: child)
+    }
+    
+    private func loadScheduledReminders() async {
+        do {
+            scheduledReminders = try await remindersStore.fetchReminders(forChild: child.id)
+        } catch {
+            // Silently fail for MVP
+            scheduledReminders = []
+        }
+    }
+    
+    private func markCompleted(_ reminder: ScheduledReminder) async {
+        do {
+            try await remindersStore.markCompleted(id: reminder.id, completedAt: Date())
+            await loadData()
+        } catch {
+            // Silently fail for MVP
+        }
     }
     
     private func ignoreSuggestion(_ suggestion: ReminderSuggestion) {

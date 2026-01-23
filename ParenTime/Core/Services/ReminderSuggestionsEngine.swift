@@ -64,7 +64,7 @@ struct ReminderSuggestionsEngine {
             }
     }
     
-    /// Génère des événements à venir avec dates d'échéance pour un enfant
+    /// Génère des événements à venir avec dates d'échéance pour un enfant (toutes les occurrences)
     /// - Parameters:
     ///   - child: L'enfant pour lequel générer des événements
     ///   - maxMonthsInFuture: Horizon maximum en mois (nil = pas de limite)
@@ -103,6 +103,98 @@ struct ReminderSuggestionsEngine {
             }
             
             // Then by due date (earliest first)
+            if event1.dueDate != event2.dueDate {
+                return event1.dueDate < event2.dueDate
+            }
+            
+            // Finally by title (alphabetical)
+            return event1.title < event2.title
+        }
+    }
+    
+    /// Génère des événements à venir pour un enfant, en ne gardant que la prochaine occurrence par templateId
+    /// - Parameters:
+    ///   - child: L'enfant pour lequel générer des événements
+    ///   - maxMonthsInFuture: Horizon maximum en mois (nil = pas de limite)
+    ///   - includeOverdue: Si true, inclut les occurrences en retard
+    /// - Returns: Liste d'événements à venir (un seul par templateId)
+    func nextOccurrencePerTemplate(for child: Child, maxMonthsInFuture: Int? = nil, includeOverdue: Bool = false) -> [UpcomingEvent] {
+        let allEvents = upcomingEvents(for: child, maxMonthsInFuture: maxMonthsInFuture)
+        
+        // Group events by templateId
+        var eventsByTemplate: [String: [UpcomingEvent]] = [:]
+        for event in allEvents {
+            if eventsByTemplate[event.templateId] == nil {
+                eventsByTemplate[event.templateId] = []
+            }
+            eventsByTemplate[event.templateId]?.append(event)
+        }
+        
+        // For each template, keep only the next occurrence (earliest date >= now)
+        var nextOccurrences: [UpcomingEvent] = []
+        for (_, events) in eventsByTemplate {
+            // Sort by date
+            let sortedEvents = events.sorted { $0.dueDate < $1.dueDate }
+            
+            // Find the first event that is in the future (or now)
+            if let nextEvent = sortedEvents.first(where: { $0.dueDate >= referenceDate }) {
+                nextOccurrences.append(nextEvent)
+            } else if includeOverdue, let lastEvent = sortedEvents.last {
+                // If includeOverdue and no future events, include the most recent past event
+                nextOccurrences.append(lastEvent)
+            }
+        }
+        
+        // Sort by priority, then by date, then by title
+        return nextOccurrences.sorted { event1, event2 in
+            // First by priority: required > recommended > info
+            let priorityOrder: [SuggestionPriority: Int] = [
+                .required: 0,
+                .recommended: 1,
+                .info: 2
+            ]
+            let order1 = priorityOrder[event1.priority] ?? 3
+            let order2 = priorityOrder[event2.priority] ?? 3
+            
+            if order1 != order2 {
+                return order1 < order2
+            }
+            
+            // Then by due date (earliest first)
+            if event1.dueDate != event2.dueDate {
+                return event1.dueDate < event2.dueDate
+            }
+            
+            // Finally by title (alphabetical)
+            return event1.title < event2.title
+        }
+    }
+    
+    /// Get overdue events (past due date, required priority only)
+    /// - Parameter child: L'enfant pour lequel chercher les retards
+    /// - Returns: Liste d'événements en retard
+    func overdueEvents(for child: Child) -> [UpcomingEvent] {
+        var overdueEvents: [UpcomingEvent] = []
+        
+        for template in templates {
+            // Only check templates with schedule and required priority
+            guard let schedule = template.schedule,
+                  SuggestionPriority(rawValue: template.priority) == .required else {
+                continue
+            }
+            
+            let templateEvents = generateEvents(from: template, schedule: schedule, child: child, maxDate: nil)
+            
+            // Filter to only past events
+            let pastEvents = templateEvents.filter { $0.dueDate < referenceDate }
+            
+            // Add all past required events as overdue
+            overdueEvents.append(contentsOf: pastEvents)
+        }
+        
+        // Sort by priority (all required here), then by date (oldest first), then by title
+        return overdueEvents.sorted { event1, event2 in
+            // By due date (oldest first for overdue items)
             if event1.dueDate != event2.dueDate {
                 return event1.dueDate < event2.dueDate
             }

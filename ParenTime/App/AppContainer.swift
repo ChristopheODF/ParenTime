@@ -14,13 +14,19 @@ final class AppContainer: ObservableObject {
     // Services
     let childrenStore: ChildrenStore
     let suggestionStateStore: SuggestionStateStore
+    let remindersStore: RemindersStore
     
     /// Initialisation avec des dépendances par défaut
-    init(childrenStore: ChildrenStore? = nil, suggestionStateStore: SuggestionStateStore? = nil) {
+    init(
+        childrenStore: ChildrenStore? = nil,
+        suggestionStateStore: SuggestionStateStore? = nil,
+        remindersStore: RemindersStore? = nil
+    ) {
         // Par défaut, utilise le store en mémoire
         // Plus tard, on pourra injecter une implémentation SwiftData
         self.childrenStore = childrenStore ?? InMemoryChildrenStore()
         self.suggestionStateStore = suggestionStateStore ?? SuggestionStateStore()
+        self.remindersStore = remindersStore ?? UserDefaultsRemindersStore()
     }
     
     /// Conteneur partagé pour l'application
