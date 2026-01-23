@@ -37,8 +37,11 @@ struct UpcomingEvent: Identifiable, Equatable {
     
     /// Create an upcoming event from a template and due date
     static func from(template: DefaultSuggestionTemplate, dueDate: Date) -> UpcomingEvent {
+        // Use stable identifier from utility
+        let stableId = ReminderIdentifierUtils.occurrenceIdentifier(templateId: template.id, dueDate: dueDate)
+        
         return UpcomingEvent(
-            id: UUID().uuidString,
+            id: stableId,
             templateId: template.id,
             title: template.title,
             category: SuggestionCategory(rawValue: template.category) ?? .custom,

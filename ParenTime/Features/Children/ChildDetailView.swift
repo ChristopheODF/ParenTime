@@ -59,6 +59,9 @@ struct ChildDetailView: View {
                 // Header with name and age
                 headerSection
                 
+                // Domain cards - moved to top for visibility
+                domainCardsSection
+                
                 // À faire maintenant section
                 if hasToDoItems {
                     toDoNowSection
@@ -66,9 +69,6 @@ struct ChildDetailView: View {
                 
                 // À venir section
                 upcomingSection
-                
-                // Domain cards
-                domainCardsSection
             }
             .padding()
         }
@@ -372,8 +372,8 @@ struct ChildDetailView: View {
     
     private func loadData() async {
         loadSuggestions()
-        loadUpcomingEvents()
         await loadScheduledReminders()
+        loadUpcomingEvents()
     }
     
     private func loadSuggestions() {
@@ -382,7 +382,16 @@ struct ChildDetailView: View {
     
     private func loadUpcomingEvents() {
         // Load upcoming events within 12 months, only next occurrence per vaccine/series
-        upcomingEvents = suggestionsEngine.nextOccurrencePerTemplate(for: child, maxMonthsInFuture: 12)
+        let allNextOccurrences = suggestionsEngine.nextOccurrencePerTemplate(for: child, maxMonthsInFuture: 12)
+        
+        // Filter to only show activated reminders
+        upcomingEvents = allNextOccurrences.filter { event in
+            // Check if this event has an activated reminder
+            if let reminder = scheduledReminders.first(where: { $0.templateId == event.templateId && !$0.isCompleted }) {
+                return reminder.isActivated
+            }
+            return false
+        }
         
         // Also load overdue events for "À faire maintenant"
         overdueEvents = suggestionsEngine.overdueEvents(for: child)
@@ -443,26 +452,29 @@ struct ChildDetailView: View {
     
     private func scheduleNotification(for suggestion: ReminderSuggestion) async {
         do {
-            // For MVP, schedule a notification for tomorrow at 9 AM
-            let calendar = Calendar.current
-            let now = Date()
-            
-            // Get tomorrow's date safely
-            guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: now) else {
+            // Get the next occurrence for this suggestion to get the exact due date
+            let allOccurrences = suggestionsEngine.nextOccurrencePerTemplate(for: child, maxMonthsInFuture: 24)
+            guard let occurrence = allOccurrences.first(where: { $0.templateId == suggestion.templateId }) else {
                 return
             }
             
-            // Set the time to 9 AM
-            var components = calendar.dateComponents([.year, .month, .day], from: tomorrow)
-            components.hour = 9
+            let calendar = Calendar.current
+            
+            // Set notification for the due date at default notification time
+            var components = calendar.dateComponents([.year, .month, .day], from: occurrence.dueDate)
+            components.hour = ReminderIdentifierUtils.defaultNotificationHour
             components.minute = 0
             
             guard let notificationDate = calendar.date(from: components) else {
                 return
             }
             
-            // Use stable identifier based on child ID and template ID
-            let identifier = "reminder_\(child.id.uuidString)_\(suggestion.templateId)"
+            // Use stable identifier from utility
+            let identifier = ReminderIdentifierUtils.notificationIdentifier(
+                childId: child.id,
+                templateId: suggestion.templateId,
+                dueDate: occurrence.dueDate
+            )
             
             try await notificationScheduler.scheduleNotification(
                 identifier: identifier,
@@ -471,8 +483,14 @@ struct ChildDetailView: View {
                 at: notificationDate
             )
             
-            // Mark as activated
-            suggestionStateStore.activateSuggestion(suggestion.templateId, forChild: child.id)
+            // Create and save a ScheduledReminder with activation
+            let scheduledReminder = ScheduledReminder.from(event: occurrence, childId: child.id)
+            var activatedReminder = scheduledReminder
+            activatedReminder.isActivated = true
+            try await remindersStore.saveReminder(activatedReminder)
+            
+            // Reload data to show the change
+            await loadData()
         } catch {
             // For MVP, silent failure is acceptable
         }
