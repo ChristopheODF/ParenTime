@@ -16,15 +16,18 @@ struct VaccinesView: View {
     
     private let suggestionsEngine: ReminderSuggestionsEngine
     private let remindersStore: RemindersStore
+    private let notificationScheduler: NotificationScheduler
     
     init(
         child: Child,
         suggestionsEngine: ReminderSuggestionsEngine = ReminderSuggestionsEngine(),
-        remindersStore: RemindersStore = AppContainer.shared.remindersStore
+        remindersStore: RemindersStore = AppContainer.shared.remindersStore,
+        notificationScheduler: NotificationScheduler = UserNotificationScheduler()
     ) {
         self.child = child
         self.suggestionsEngine = suggestionsEngine
         self.remindersStore = remindersStore
+        self.notificationScheduler = notificationScheduler
     }
     
     var body: some View {
@@ -63,10 +66,19 @@ struct VaccinesView: View {
                 
                 Spacer()
                 
-                if isActivated {
-                    Image(systemName: "bell.fill")
-                        .foregroundStyle(.blue)
-                        .font(.caption)
+                if isActivated && !isCompleted {
+                    HStack(spacing: 4) {
+                        Image(systemName: "bell.fill")
+                            .font(.caption)
+                        Text("Activé")
+                            .font(.caption2)
+                            .bold()
+                    }
+                    .foregroundStyle(.blue)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(8)
                 }
             }
             
@@ -126,10 +138,11 @@ struct VaccinesView: View {
     
     private func loadUpcomingVaccines() async {
         // Get only next occurrence per vaccine/series, and filter to vaccines only
+        // Note: For VaccinesView we show ALL vaccines (even non-activated) to allow activation
         let nextOccurrences = suggestionsEngine.nextOccurrencePerTemplate(for: child, maxMonthsInFuture: nil)
         upcomingVaccines = nextOccurrences.filter { $0.category == .vaccines }
         
-        // Load scheduled reminders for this child
+        // Load scheduled reminders for this child to check activation state
         do {
             scheduledReminders = try await remindersStore.fetchReminders(forChild: child.id)
         } catch {
@@ -142,17 +155,63 @@ struct VaccinesView: View {
         do {
             if let reminder = currentReminder {
                 // Update existing reminder
-                try await remindersStore.updateActivation(id: reminder.id, isActivated: !reminder.isActivated)
+                let newActivationState = !reminder.isActivated
+                try await remindersStore.updateActivation(id: reminder.id, isActivated: newActivationState)
+                
+                // Handle notification scheduling/cancellation
+                let dateFormatter = ISO8601DateFormatter()
+                dateFormatter.formatOptions = [.withFullDate]
+                let dateString = dateFormatter.string(from: vaccine.dueDate)
+                let identifier = "reminder_\(child.id.uuidString)_\(vaccine.templateId)_\(dateString)"
+                
+                if newActivationState {
+                    // Schedule notification
+                    await scheduleNotification(for: vaccine, identifier: identifier)
+                } else {
+                    // Cancel notification
+                    await notificationScheduler.cancelNotification(identifier: identifier)
+                }
             } else {
                 // Create new reminder
                 let newReminder = ScheduledReminder.from(event: vaccine, childId: child.id)
                 var activatedReminder = newReminder
                 activatedReminder.isActivated = true
                 try await remindersStore.saveReminder(activatedReminder)
+                
+                // Schedule notification
+                let dateFormatter = ISO8601DateFormatter()
+                dateFormatter.formatOptions = [.withFullDate]
+                let dateString = dateFormatter.string(from: vaccine.dueDate)
+                let identifier = "reminder_\(child.id.uuidString)_\(vaccine.templateId)_\(dateString)"
+                await scheduleNotification(for: vaccine, identifier: identifier)
             }
             
             // Reload data
             await loadUpcomingVaccines()
+        } catch {
+            // Silently fail for MVP
+        }
+    }
+    
+    private func scheduleNotification(for vaccine: UpcomingEvent, identifier: String) async {
+        let calendar = Calendar.current
+        
+        // Set notification for the due date at 9 AM (default notification time)
+        var components = calendar.dateComponents([.year, .month, .day], from: vaccine.dueDate)
+        components.hour = 9
+        components.minute = 0
+        
+        guard let notificationDate = calendar.date(from: components) else {
+            return
+        }
+        
+        do {
+            try await notificationScheduler.scheduleNotification(
+                identifier: identifier,
+                title: vaccine.title,
+                body: "N'oubliez pas le vaccin pour \(child.firstName)",
+                at: notificationDate
+            )
         } catch {
             // Silently fail for MVP
         }

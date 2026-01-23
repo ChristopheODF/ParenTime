@@ -37,8 +37,14 @@ struct UpcomingEvent: Identifiable, Equatable {
     
     /// Create an upcoming event from a template and due date
     static func from(template: DefaultSuggestionTemplate, dueDate: Date) -> UpcomingEvent {
+        // Create stable ID based on template and due date
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withFullDate]
+        let dateString = dateFormatter.string(from: dueDate)
+        let stableId = "\(template.id)_\(dateString)"
+        
         return UpcomingEvent(
-            id: UUID().uuidString,
+            id: stableId,
             templateId: template.id,
             title: template.title,
             category: SuggestionCategory(rawValue: template.category) ?? .custom,
