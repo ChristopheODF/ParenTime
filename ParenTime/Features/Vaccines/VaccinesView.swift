@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-/// Vue affichant la liste complète des vaccins à venir pour un enfant
+/// View displaying the complete list of upcoming vaccines for a child
 struct VaccinesView: View {
     let child: Child
     @State private var upcomingVaccines: [UpcomingEvent] = []

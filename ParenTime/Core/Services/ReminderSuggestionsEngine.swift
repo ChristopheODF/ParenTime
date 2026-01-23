@@ -136,7 +136,7 @@ struct ReminderSuggestionsEngine {
         
         // Generate event from dueAgeMonthsRange (use middle of range)
         if let range = schedule.dueAgeMonthsRange {
-            // Use middle of range, rounding down for consistency
+            // Use middle of range with integer division (truncates for odd ranges)
             let middleMonth = (range.min + range.max) / 2
             if let dueDate = calendar.date(byAdding: .month, value: middleMonth, to: child.birthDate) {
                 // Only include if in the future and within max date if specified

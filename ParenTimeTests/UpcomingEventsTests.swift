@@ -13,8 +13,7 @@ import Testing
 struct UpcomingEventsTests {
     
     // Helper to create a child with a specific age in months
-    private func createChild(monthsOld: Int, referenceDate: Date = Date()) -> Child {
-        let calendar = Calendar.current
+    private func createChild(monthsOld: Int, calendar: Calendar = .current, referenceDate: Date) -> Child {
         let birthDate = calendar.date(byAdding: .month, value: -monthsOld, to: referenceDate)!
         return Child(firstName: "Test", lastName: "Child", birthDate: birthDate)
     }

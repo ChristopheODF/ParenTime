@@ -173,18 +173,21 @@ struct ChildDetailView: View {
                     domainCardContent(title: "Vaccins", icon: "cross.case.fill", color: .blue)
                 }
                 
+                // TODO: Implement Traitements feature
                 Button {
                     // Placeholder for Traitements
                 } label: {
                     domainCardContent(title: "Traitements", icon: "pills.fill", color: .green)
                 }
                 
+                // TODO: Implement Rendez-vous feature
                 Button {
                     // Placeholder for Rendez-vous
                 } label: {
                     domainCardContent(title: "Rendez-vous", icon: "calendar.badge.clock", color: .orange)
                 }
                 
+                // TODO: Implement Rappels feature
                 Button {
                     // Placeholder for Rappels
                 } label: {
