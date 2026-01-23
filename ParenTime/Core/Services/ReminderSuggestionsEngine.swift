@@ -63,4 +63,94 @@ struct ReminderSuggestionsEngine {
                 return order1 < order2
             }
     }
+    
+    /// Génère des événements à venir avec dates d'échéance pour un enfant
+    /// - Parameters:
+    ///   - child: L'enfant pour lequel générer des événements
+    ///   - maxMonthsInFuture: Horizon maximum en mois (nil = pas de limite)
+    /// - Returns: Liste d'événements à venir
+    func upcomingEvents(for child: Child, maxMonthsInFuture: Int? = nil) -> [UpcomingEvent] {
+        var events: [UpcomingEvent] = []
+        
+        let maxDate: Date?
+        if let maxMonths = maxMonthsInFuture {
+            maxDate = calendar.date(byAdding: .month, value: maxMonths, to: referenceDate)
+        } else {
+            maxDate = nil
+        }
+        
+        for template in templates {
+            // Generate events from schedule if present
+            if let schedule = template.schedule {
+                let templateEvents = generateEvents(from: template, schedule: schedule, child: child, maxDate: maxDate)
+                events.append(contentsOf: templateEvents)
+            }
+        }
+        
+        // Sort by priority, then by date, then by title
+        return events.sorted { event1, event2 in
+            // First by priority: required > recommended > info
+            let priorityOrder: [SuggestionPriority: Int] = [
+                .required: 0,
+                .recommended: 1,
+                .info: 2
+            ]
+            let order1 = priorityOrder[event1.priority] ?? 3
+            let order2 = priorityOrder[event2.priority] ?? 3
+            
+            if order1 != order2 {
+                return order1 < order2
+            }
+            
+            // Then by due date (earliest first)
+            if event1.dueDate != event2.dueDate {
+                return event1.dueDate < event2.dueDate
+            }
+            
+            // Finally by title (alphabetical)
+            return event1.title < event2.title
+        }
+    }
+    
+    /// Generate events from a template's schedule
+    private func generateEvents(from template: DefaultSuggestionTemplate, schedule: DefaultSuggestionTemplate.Schedule, child: Child, maxDate: Date?) -> [UpcomingEvent] {
+        var events: [UpcomingEvent] = []
+        
+        // Generate events from dueAgeMonths
+        if let dueAgeMonths = schedule.dueAgeMonths {
+            for ageMonths in dueAgeMonths {
+                if let dueDate = calendar.date(byAdding: .month, value: ageMonths, to: child.birthDate) {
+                    // Only include if in the future and within max date if specified
+                    if dueDate >= referenceDate {
+                        if let maxDate = maxDate {
+                            if dueDate <= maxDate {
+                                events.append(UpcomingEvent.from(template: template, dueDate: dueDate))
+                            }
+                        } else {
+                            events.append(UpcomingEvent.from(template: template, dueDate: dueDate))
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Generate event from dueAgeMonthsRange (use middle of range)
+        if let range = schedule.dueAgeMonthsRange {
+            let middleMonth = (range.min + range.max) / 2
+            if let dueDate = calendar.date(byAdding: .month, value: middleMonth, to: child.birthDate) {
+                // Only include if in the future and within max date if specified
+                if dueDate >= referenceDate {
+                    if let maxDate = maxDate {
+                        if dueDate <= maxDate {
+                            events.append(UpcomingEvent.from(template: template, dueDate: dueDate))
+                        }
+                    } else {
+                        events.append(UpcomingEvent.from(template: template, dueDate: dueDate))
+                    }
+                }
+            }
+        }
+        
+        return events
+    }
 }

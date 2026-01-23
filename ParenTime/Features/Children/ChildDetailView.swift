@@ -12,6 +12,7 @@ struct ChildDetailView: View {
     let child: Child
     @StateObject private var suggestionStateStore: SuggestionStateStore
     @State private var allSuggestions: [ReminderSuggestion] = []
+    @State private var upcomingEvents: [UpcomingEvent] = []
     @State private var showingPermissionAlert = false
     @State private var permissionDeniedAlert = false
     
@@ -35,7 +36,8 @@ struct ChildDetailView: View {
     }
     
     private var toDoNow: [ReminderSuggestion] {
-        Array(activeSuggestions.prefix(3))
+        // Only show required priority suggestions
+        activeSuggestions.filter { $0.priority == .required }
     }
     
     var body: some View {
@@ -76,6 +78,7 @@ struct ChildDetailView: View {
         }
         .onAppear {
             loadSuggestions()
+            loadUpcomingEvents()
         }
     }
     
@@ -126,27 +129,33 @@ struct ChildDetailView: View {
                     .font(.headline)
             }
             
-            // For MVP, show placeholder or activated suggestions count
-            let activatedCount = suggestionStateStore.activatedSuggestions[child.id]?.count ?? 0
-            if activatedCount > 0 {
-                HStack {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                    Text("\(activatedCount) rappel(s) activé(s)")
-                        .font(.subheadline)
-                }
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(.systemGray6))
-                .cornerRadius(8)
-            } else {
-                Text("Aucun événement planifié")
+            // Show only titles of upcoming events in the next 12 months
+            if upcomingEvents.isEmpty {
+                Text("Aucun événement à venir")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .padding()
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color(.systemGray6))
                     .cornerRadius(8)
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(upcomingEvents) { event in
+                        HStack {
+                            Text(event.title)
+                                .font(.subheadline)
+                            Spacer()
+                            Text(event.dueDate, style: .date)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(.systemGray6))
+                .cornerRadius(8)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -168,8 +177,14 @@ struct ChildDetailView: View {
     }
     
     private func domainCard(title: String, icon: String, color: Color) -> some View {
-        Button {
-            // Stub - domain navigation not implemented yet
+        NavigationLink {
+            if title == "Vaccins" {
+                VaccinesView(child: child, suggestionsEngine: suggestionsEngine)
+            } else {
+                // Placeholder for other domains
+                Text("\(title) - À venir")
+                    .navigationTitle(title)
+            }
         } label: {
             VStack(spacing: 8) {
                 Image(systemName: icon)
@@ -274,6 +289,11 @@ struct ChildDetailView: View {
     
     private func loadSuggestions() {
         allSuggestions = suggestionsEngine.suggestions(for: child)
+    }
+    
+    private func loadUpcomingEvents() {
+        // Load upcoming events within 12 months
+        upcomingEvents = suggestionsEngine.upcomingEvents(for: child, maxMonthsInFuture: 12)
     }
     
     private func ignoreSuggestion(_ suggestion: ReminderSuggestion) {
