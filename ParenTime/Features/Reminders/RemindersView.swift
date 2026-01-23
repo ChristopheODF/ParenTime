@@ -161,9 +161,7 @@ struct RemindersView: View {
     private func loadReminders() async {
         do {
             let allReminders = try await remindersStore.fetchReminders(forChild: child.id)
-            reminders = allReminders
-                .filter { $0.category == .custom }
-                .sorted { $0.dueDate < $1.dueDate }
+            reminders = allReminders.filtered(by: .custom)
         } catch {
             reminders = []
         }

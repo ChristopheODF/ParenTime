@@ -161,9 +161,7 @@ struct TreatmentsView: View {
     private func loadTreatments() async {
         do {
             let allReminders = try await remindersStore.fetchReminders(forChild: child.id)
-            treatments = allReminders
-                .filter { $0.category == .medications }
-                .sorted { $0.dueDate < $1.dueDate }
+            treatments = allReminders.filtered(by: .medications)
         } catch {
             treatments = []
         }

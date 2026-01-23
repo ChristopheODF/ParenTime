@@ -82,3 +82,14 @@ struct ScheduledReminder: Identifiable, Codable, Equatable {
         return "En retard"
     }
 }
+
+// MARK: - Helper Extensions
+
+extension Array where Element == ScheduledReminder {
+    /// Filter reminders by category and sort by due date
+    func filtered(by category: SuggestionCategory) -> [ScheduledReminder] {
+        return self
+            .filter { $0.category == category }
+            .sorted { $0.dueDate < $1.dueDate }
+    }
+}

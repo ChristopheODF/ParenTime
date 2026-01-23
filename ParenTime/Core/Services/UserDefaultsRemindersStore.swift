@@ -29,7 +29,11 @@ actor UserDefaultsRemindersStore: RemindersStore {
     }
     
     func fetchAllReminders() async throws -> [ScheduledReminder] {
-        guard let data = userDefaults.data(forKey: remindersKey) else {
+        let data = await MainActor.run {
+            userDefaults.data(forKey: remindersKey)
+        }
+        
+        guard let data = data else {
             return []
         }
         
@@ -88,11 +92,17 @@ actor UserDefaultsRemindersStore: RemindersStore {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(reminders)
-        userDefaults.set(data, forKey: remindersKey)
+        
+        // UserDefaults operations should be on main actor for thread safety
+        await MainActor.run {
+            userDefaults.set(data, forKey: remindersKey)
+        }
     }
     
     /// Clear all reminders (useful for testing)
     func clearAll() async throws {
-        userDefaults.removeObject(forKey: remindersKey)
+        await MainActor.run {
+            userDefaults.removeObject(forKey: remindersKey)
+        }
     }
 }

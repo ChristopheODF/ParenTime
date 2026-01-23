@@ -161,9 +161,7 @@ struct AppointmentsView: View {
     private func loadAppointments() async {
         do {
             let allReminders = try await remindersStore.fetchReminders(forChild: child.id)
-            appointments = allReminders
-                .filter { $0.category == .appointments }
-                .sorted { $0.dueDate < $1.dueDate }
+            appointments = allReminders.filtered(by: .appointments)
         } catch {
             appointments = []
         }
