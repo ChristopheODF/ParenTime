@@ -159,10 +159,11 @@ struct VaccinesView: View {
                 try await remindersStore.updateActivation(id: reminder.id, isActivated: newActivationState)
                 
                 // Handle notification scheduling/cancellation
-                let dateFormatter = ISO8601DateFormatter()
-                dateFormatter.formatOptions = [.withFullDate]
-                let dateString = dateFormatter.string(from: vaccine.dueDate)
-                let identifier = "reminder_\(child.id.uuidString)_\(vaccine.templateId)_\(dateString)"
+                let identifier = ReminderIdentifierUtils.notificationIdentifier(
+                    childId: child.id,
+                    templateId: vaccine.templateId,
+                    dueDate: vaccine.dueDate
+                )
                 
                 if newActivationState {
                     // Schedule notification
@@ -179,10 +180,11 @@ struct VaccinesView: View {
                 try await remindersStore.saveReminder(activatedReminder)
                 
                 // Schedule notification
-                let dateFormatter = ISO8601DateFormatter()
-                dateFormatter.formatOptions = [.withFullDate]
-                let dateString = dateFormatter.string(from: vaccine.dueDate)
-                let identifier = "reminder_\(child.id.uuidString)_\(vaccine.templateId)_\(dateString)"
+                let identifier = ReminderIdentifierUtils.notificationIdentifier(
+                    childId: child.id,
+                    templateId: vaccine.templateId,
+                    dueDate: vaccine.dueDate
+                )
                 await scheduleNotification(for: vaccine, identifier: identifier)
             }
             

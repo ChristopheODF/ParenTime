@@ -212,21 +212,7 @@ struct ReminderSuggestionsEngine {
         if let dueAgeMonths = schedule.dueAgeMonths {
             for ageMonths in dueAgeMonths {
                 if let dueDate = calendar.date(byAdding: .month, value: ageMonths, to: child.birthDate) {
-                    // For upcomingEvents: only include if in the future and within max date if specified
-                    // For overdueEvents: include past events too (maxDate will be nil)
-                    if maxDate != nil {
-                        // For upcoming events with maxDate, only future events
-                        if dueDate >= referenceDate {
-                            if let maxDate = maxDate {
-                                if dueDate <= maxDate {
-                                    events.append(UpcomingEvent.from(template: template, dueDate: dueDate))
-                                }
-                            } else {
-                                events.append(UpcomingEvent.from(template: template, dueDate: dueDate))
-                            }
-                        }
-                    } else {
-                        // No maxDate means we want all events (for overdue detection)
+                    if shouldIncludeEvent(dueDate: dueDate, maxDate: maxDate) {
                         events.append(UpcomingEvent.from(template: template, dueDate: dueDate))
                     }
                 }
@@ -238,26 +224,27 @@ struct ReminderSuggestionsEngine {
             // Use middle of range with integer division (truncates for odd ranges)
             let middleMonth = (range.min + range.max) / 2
             if let dueDate = calendar.date(byAdding: .month, value: middleMonth, to: child.birthDate) {
-                // For upcomingEvents: only include if in the future and within max date if specified
-                // For overdueEvents: include past events too (maxDate will be nil)
-                if maxDate != nil {
-                    // For upcoming events with maxDate, only future events
-                    if dueDate >= referenceDate {
-                        if let maxDate = maxDate {
-                            if dueDate <= maxDate {
-                                events.append(UpcomingEvent.from(template: template, dueDate: dueDate))
-                            }
-                        } else {
-                            events.append(UpcomingEvent.from(template: template, dueDate: dueDate))
-                        }
-                    }
-                } else {
-                    // No maxDate means we want all events (for overdue detection)
+                if shouldIncludeEvent(dueDate: dueDate, maxDate: maxDate) {
                     events.append(UpcomingEvent.from(template: template, dueDate: dueDate))
                 }
             }
         }
         
         return events
+    }
+    
+    /// Determine if an event should be included based on its due date and max date constraint
+    /// - Parameters:
+    ///   - dueDate: The due date of the event
+    ///   - maxDate: Optional maximum date constraint (nil means include all events)
+    /// - Returns: true if the event should be included
+    private func shouldIncludeEvent(dueDate: Date, maxDate: Date?) -> Bool {
+        if let maxDate = maxDate {
+            // With maxDate constraint: only include future events within the range
+            return dueDate >= referenceDate && dueDate <= maxDate
+        } else {
+            // Without maxDate: include all events (for overdue detection)
+            return true
+        }
     }
 }

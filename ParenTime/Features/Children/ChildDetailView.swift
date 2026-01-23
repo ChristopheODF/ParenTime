@@ -469,11 +469,12 @@ struct ChildDetailView: View {
                 return
             }
             
-            // Use stable identifier based on child ID, template ID, and due date
-            let dateFormatter = ISO8601DateFormatter()
-            dateFormatter.formatOptions = [.withFullDate]
-            let dateString = dateFormatter.string(from: occurrence.dueDate)
-            let identifier = "reminder_\(child.id.uuidString)_\(suggestion.templateId)_\(dateString)"
+            // Use stable identifier from utility
+            let identifier = ReminderIdentifierUtils.notificationIdentifier(
+                childId: child.id,
+                templateId: suggestion.templateId,
+                dueDate: occurrence.dueDate
+            )
             
             try await notificationScheduler.scheduleNotification(
                 identifier: identifier,
