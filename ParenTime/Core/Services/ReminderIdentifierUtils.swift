@@ -10,6 +10,9 @@ import Foundation
 /// Utility for generating stable identifiers for reminders and notifications
 struct ReminderIdentifierUtils {
     
+    /// Default notification time (hour of day)
+    static let defaultNotificationHour = 9
+    
     /// Generate a stable notification identifier for a reminder
     /// - Parameters:
     ///   - childId: The child's UUID

@@ -12,10 +12,19 @@ import Testing
 @Suite("Activation Filter Tests")
 struct ActivationFilterTests {
     
+    /// Helper to filter events by activation state
+    private func filterByActivation(events: [UpcomingEvent], reminders: [ScheduledReminder]) -> [UpcomingEvent] {
+        return events.filter { event in
+            if let reminder = reminders.first(where: { $0.templateId == event.templateId && !$0.isCompleted }) {
+                return reminder.isActivated
+            }
+            return false
+        }
+    }
+    
     @Test("Should filter upcoming events to only show activated reminders")
     func testFilterActivatedReminders() {
         let calendar = Calendar.current
-        let referenceDate = calendar.date(from: DateComponents(year: 2026, month: 1, day: 1))!
         let birthDate = calendar.date(from: DateComponents(year: 2026, month: 1, day: 1))!
         let child = Child(firstName: "Test", lastName: "Child", birthDate: birthDate)
         
@@ -65,13 +74,8 @@ struct ActivationFilterTests {
         let scheduledReminders = [reminder1, reminder2]
         let allEvents = [event1, event2]
         
-        // Filter events to only show activated ones
-        let filteredEvents = allEvents.filter { event in
-            if let reminder = scheduledReminders.first(where: { $0.templateId == event.templateId && !$0.isCompleted }) {
-                return reminder.isActivated
-            }
-            return false
-        }
+        // Filter events using helper
+        let filteredEvents = filterByActivation(events: allEvents, reminders: scheduledReminders)
         
         // Should only have event1 (activated)
         #expect(filteredEvents.count == 1)
@@ -98,13 +102,8 @@ struct ActivationFilterTests {
         let scheduledReminders: [ScheduledReminder] = []
         let allEvents = [event]
         
-        // Filter events
-        let filteredEvents = allEvents.filter { event in
-            if let reminder = scheduledReminders.first(where: { $0.templateId == event.templateId && !$0.isCompleted }) {
-                return reminder.isActivated
-            }
-            return false
-        }
+        // Filter events using helper
+        let filteredEvents = filterByActivation(events: allEvents, reminders: scheduledReminders)
         
         // Should be empty (no reminder = not shown)
         #expect(filteredEvents.isEmpty)
@@ -141,13 +140,8 @@ struct ActivationFilterTests {
         let scheduledReminders = [reminder]
         let allEvents = [event]
         
-        // Filter events
-        let filteredEvents = allEvents.filter { event in
-            if let reminder = scheduledReminders.first(where: { $0.templateId == event.templateId && !$0.isCompleted }) {
-                return reminder.isActivated
-            }
-            return false
-        }
+        // Filter events using helper
+        let filteredEvents = filterByActivation(events: allEvents, reminders: scheduledReminders)
         
         // Should be empty (completed = not shown)
         #expect(filteredEvents.isEmpty)

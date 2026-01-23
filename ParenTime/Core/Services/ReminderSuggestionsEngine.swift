@@ -236,7 +236,7 @@ struct ReminderSuggestionsEngine {
     /// Determine if an event should be included based on its due date and max date constraint
     /// - Parameters:
     ///   - dueDate: The due date of the event
-    ///   - maxDate: Optional maximum date constraint (nil means include all events)
+    ///   - maxDate: Optional maximum date constraint. When nil, all events are included regardless of reference date (used for overdue detection). When provided, only future events within the range are included.
     /// - Returns: true if the event should be included
     private func shouldIncludeEvent(dueDate: Date, maxDate: Date?) -> Bool {
         if let maxDate = maxDate {
@@ -244,6 +244,7 @@ struct ReminderSuggestionsEngine {
             return dueDate >= referenceDate && dueDate <= maxDate
         } else {
             // Without maxDate: include all events (for overdue detection)
+            // This allows past events to be detected as overdue
             return true
         }
     }

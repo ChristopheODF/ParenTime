@@ -460,9 +460,9 @@ struct ChildDetailView: View {
             
             let calendar = Calendar.current
             
-            // Set notification for the due date at 9 AM (default notification time)
+            // Set notification for the due date at default notification time
             var components = calendar.dateComponents([.year, .month, .day], from: occurrence.dueDate)
-            components.hour = 9
+            components.hour = ReminderIdentifierUtils.defaultNotificationHour
             components.minute = 0
             
             guard let notificationDate = calendar.date(from: components) else {
