@@ -8,18 +8,23 @@
 import SwiftUI
 
 /// View displaying the complete list of upcoming vaccines for a child
+/// Shows only the next occurrence per vaccine/series
 struct VaccinesView: View {
     let child: Child
     @State private var upcomingVaccines: [UpcomingEvent] = []
+    @State private var scheduledReminders: [ScheduledReminder] = []
     
     private let suggestionsEngine: ReminderSuggestionsEngine
+    private let remindersStore: RemindersStore
     
     init(
         child: Child,
-        suggestionsEngine: ReminderSuggestionsEngine = ReminderSuggestionsEngine()
+        suggestionsEngine: ReminderSuggestionsEngine = ReminderSuggestionsEngine(),
+        remindersStore: RemindersStore = AppContainer.shared.remindersStore
     ) {
         self.child = child
         self.suggestionsEngine = suggestionsEngine
+        self.remindersStore = remindersStore
     }
     
     var body: some View {
@@ -39,14 +44,31 @@ struct VaccinesView: View {
         .navigationTitle("Vaccins - \(child.firstName)")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            loadUpcomingVaccines()
+            Task {
+                await loadUpcomingVaccines()
+            }
         }
     }
     
     private func vaccineRow(_ vaccine: UpcomingEvent) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(vaccine.title)
-                .font(.headline)
+        let reminder = scheduledReminders.first { $0.templateId == vaccine.templateId }
+        let isActivated = reminder?.isActivated ?? false
+        let isCompleted = reminder?.isCompleted ?? false
+        
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(vaccine.title)
+                    .font(.headline)
+                    .strikethrough(isCompleted)
+                
+                Spacer()
+                
+                if isActivated {
+                    Image(systemName: "bell.fill")
+                        .foregroundStyle(.blue)
+                        .font(.caption)
+                }
+            }
             
             HStack(spacing: 4) {
                 priorityBadge(vaccine.priority)
@@ -64,8 +86,24 @@ struct VaccinesView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            
+            if !isCompleted {
+                HStack(spacing: 8) {
+                    Button {
+                        Task {
+                            await toggleActivation(for: vaccine, currentReminder: reminder)
+                        }
+                    } label: {
+                        Label(isActivated ? "Désactiver" : "Activer", systemImage: isActivated ? "bell.slash" : "bell.badge")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(isActivated ? .gray : .blue)
+                }
+            }
         }
         .padding(.vertical, 4)
+        .opacity(isCompleted ? 0.5 : 1.0)
     }
     
     private func priorityBadge(_ priority: SuggestionPriority) -> some View {
@@ -86,10 +124,38 @@ struct VaccinesView: View {
             .cornerRadius(4)
     }
     
-    private func loadUpcomingVaccines() {
-        // Get all upcoming events and filter to vaccines only
-        let allUpcomingEvents = suggestionsEngine.upcomingEvents(for: child, maxMonthsInFuture: nil)
-        upcomingVaccines = allUpcomingEvents.filter { $0.category == .vaccines }
+    private func loadUpcomingVaccines() async {
+        // Get only next occurrence per vaccine/series, and filter to vaccines only
+        let nextOccurrences = suggestionsEngine.nextOccurrencePerTemplate(for: child, maxMonthsInFuture: nil)
+        upcomingVaccines = nextOccurrences.filter { $0.category == .vaccines }
+        
+        // Load scheduled reminders for this child
+        do {
+            scheduledReminders = try await remindersStore.fetchReminders(forChild: child.id)
+        } catch {
+            // Silently fail for MVP
+            scheduledReminders = []
+        }
+    }
+    
+    private func toggleActivation(for vaccine: UpcomingEvent, currentReminder: ScheduledReminder?) async {
+        do {
+            if let reminder = currentReminder {
+                // Update existing reminder
+                try await remindersStore.updateActivation(id: reminder.id, isActivated: !reminder.isActivated)
+            } else {
+                // Create new reminder
+                let newReminder = ScheduledReminder.from(event: vaccine, childId: child.id)
+                var activatedReminder = newReminder
+                activatedReminder.isActivated = true
+                try await remindersStore.saveReminder(activatedReminder)
+            }
+            
+            // Reload data
+            await loadUpcomingVaccines()
+        } catch {
+            // Silently fail for MVP
+        }
     }
 }
 

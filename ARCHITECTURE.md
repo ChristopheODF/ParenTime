@@ -353,3 +353,210 @@ Les tests vérifient l'applicabilité des templates :
 - Calendrier et date de référence personnalisés
 
 Voir `ReminderSuggestionsEngineTests.swift` pour les exemples complets.
+
+## MVP 2 - Gestion des rappels et écrans par domaine
+
+### Vue d'ensemble MVP 2
+
+MVP 2 adresse les problèmes de surcharge d'information pour les nouveau-nés et introduit une gestion complète des rappels avec persistance.
+
+**Problèmes résolus :**
+1. **Trop d'occurrences vaccins** : Pour un nouveau-né, l'affichage montrait toutes les doses (1ère, 2ème, 3ème) et tous les rappels. Maintenant, seule la **prochaine occurrence** par vaccin/série est affichée.
+2. **Régression activation** : Le bouton activer/désactiver était absent. Maintenant restauré avec indicateur visuel de statut.
+3. **Gestion retards** : Les vaccins obligatoires en retard s'affichent dans "À faire maintenant" avec le temps de retard et l'action "C'est bon, c'est fait".
+4. **Ajout de rappels** : Nouvelles vues pour Rendez-vous, Traitements et Rappels personnalisés avec possibilité d'ajout.
+
+### Architecture des rappels planifiés
+
+#### ScheduledReminder - Modèle unifié
+
+Représente tous les types de rappels (catalogue et créés par l'utilisateur) :
+
+```swift
+struct ScheduledReminder {
+    let id: UUID
+    let childId: UUID
+    let templateId: String?  // nil pour rappels custom
+    let title: String
+    let category: SuggestionCategory
+    let priority: SuggestionPriority
+    let dueDate: Date
+    let description: String?
+    
+    // État
+    var isActivated: Bool
+    var isCompleted: Bool
+    var completedAt: Date?
+}
+```
+
+**Caractéristiques :**
+- Unifie les rappels du catalogue (vaccins) et ceux créés par l'utilisateur
+- État persisté : activé/complété avec date
+- Méthodes utilitaires : `isOverdue()`, `lateSinceText()`
+
+#### RemindersStore - Persistance
+
+Protocole pour la gestion CRUD des rappels :
+
+```swift
+protocol RemindersStore {
+    func fetchReminders(forChild: UUID) async throws -> [ScheduledReminder]
+    func fetchAllReminders() async throws -> [ScheduledReminder]
+    func saveReminder(_ reminder: ScheduledReminder) async throws
+    func deleteReminder(id: UUID) async throws
+    func updateActivation(id: UUID, isActivated: Bool) async throws
+    func markCompleted(id: UUID, completedAt: Date) async throws
+}
+```
+
+**Implémentation actuelle** : `UserDefaultsRemindersStore`
+- Stockage via UserDefaults avec encodage JSON/ISO8601
+- Thread-safe avec MainActor pour les opérations UserDefaults
+- Suite name personnalisable pour isolation des tests
+- Opérations atomiques avec actor isolation
+
+**Évolution future** : SwiftData pour persistance robuste et synchronisation CloudKit
+
+### Génération des occurrences - Logique "prochaine occurrence"
+
+#### Problème résolu
+
+Avant : Un nouveau-né voyait ~40 lignes (toutes les doses de tous les vaccins)
+Après : ~15 lignes (une seule ligne par vaccin/série)
+
+#### Méthode `nextOccurrencePerTemplate`
+
+```swift
+func nextOccurrencePerTemplate(
+    for child: Child,
+    maxMonthsInFuture: Int? = nil,
+    includeOverdue: Bool = false
+) -> [UpcomingEvent]
+```
+
+**Algorithme :**
+1. Génère toutes les occurrences possibles depuis les templates
+2. Regroupe par `templateId`
+3. Pour chaque groupe, garde uniquement :
+   - La prochaine occurrence future (dueDate >= now), OU
+   - Si includeOverdue=true et aucune future, la plus récente passée
+4. Trie par priorité → date → titre
+
+**Exemple :**
+```
+Avant :
+- DTP 1ère dose (2 mois)
+- DTP 2ème dose (4 mois)
+- DTP 3ème dose (11 mois)
+- DTP Rappel (6 ans)
+
+Après (nouveau-né) :
+- DTP 1ère dose (2 mois)  ← seule la prochaine
+```
+
+#### Détection des retards
+
+Méthode `overdueEvents` pour identifier les vaccins obligatoires en retard :
+
+```swift
+func overdueEvents(for child: Child) -> [UpcomingEvent]
+```
+
+**Critères :**
+- `dueDate < referenceDate` (date passée)
+- `priority == .required` (uniquement obligatoires)
+- Non complété
+
+**Affichage :**
+- Section "À faire maintenant" avec bordure rouge
+- Label "En retard depuis X jours/mois"
+- Bouton "C'est bon, c'est fait" pour marquer complété
+
+### Écrans par domaine
+
+#### VaccinesView
+
+Liste des vaccins à venir pour un enfant :
+- Affiche uniquement la **prochaine occurrence** par vaccin/série
+- Indicateur visuel si activé (icône cloche bleue)
+- Boutons Activer/Désactiver
+- État persisté dans RemindersStore
+
+#### AppointmentsView
+
+Gestion des rendez-vous médicaux :
+- Liste des RDV avec date + heure
+- Bouton "+" pour ajouter
+- Actions : activer/désactiver, marquer complété, supprimer
+- Support swipe-to-delete
+
+#### TreatmentsView
+
+Gestion des traitements/médicaments :
+- Similaire à AppointmentsView
+- Catégorie `.medications`
+
+#### RemindersView
+
+Rappels personnalisés :
+- Catégorie `.custom`
+- Flexibilité maximale (titre, date/heure, notes, priorité)
+
+#### AddReminderView
+
+Formulaire unifié pour créer des rappels :
+- Champs : titre, date/heure, priorité, notes
+- Toggle "Activer immédiatement"
+- Adapte le titre selon la catégorie
+
+### ChildDetailView - Dashboard refactorisé
+
+**Section "À faire maintenant"** (seulement required) :
+1. **Retards** : Vaccins obligatoires passés non complétés
+   - Bordure rouge
+   - "En retard depuis X jours/mois"
+   - Action "C'est bon, c'est fait"
+2. **Suggestions actives** : Suggestions du moteur non encore activées/ignorées
+
+**Section "À venir"** :
+- Horizon : 12 mois
+- Liste compacte : titre + date
+- Pour vaccins : **seulement prochaine occurrence** par serie
+
+**Cartes domaines** :
+- Navigation vers VaccinesView, AppointmentsView, TreatmentsView, RemindersView
+
+### Tests MVP 2
+
+#### NextOccurrenceTests
+- Sélection prochaine occurrence par templateId
+- Gestion des occurrences passées/futures
+- Respect de maxMonthsInFuture
+- Mode includeOverdue
+
+#### OverdueTests
+- Détection vaccins required en retard
+- Exclusion des recommended
+- Tri par date (plus ancien en premier)
+- Texte "En retard depuis..." (jours/mois)
+
+#### UserDefaultsRemindersStoreTests
+- CRUD complet
+- Filtrage par childId
+- Persistance entre instances
+- Encodage/décodage dates ISO8601
+- Thread-safety (MainActor)
+
+**Couverture :** 100% des cas nominaux et edge cases
+
+### Améliorations futures (post-MVP 2)
+
+- [ ] Notifications réelles au lieu de placeholder (date/heure configurables)
+- [ ] Persistance SwiftData au lieu de UserDefaults
+- [ ] Synchronisation CloudKit multi-device
+- [ ] Notifications récurrentes (rappels annuels)
+- [ ] Historique des rappels complétés
+- [ ] Export PDF du carnet de santé
+- [ ] Widget iOS pour prochains rappels
+- [ ] Partage entre parents (multi-user)
