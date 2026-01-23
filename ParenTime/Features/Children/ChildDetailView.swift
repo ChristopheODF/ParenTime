@@ -372,8 +372,8 @@ struct ChildDetailView: View {
     
     private func loadData() async {
         loadSuggestions()
-        loadUpcomingEvents()
         await loadScheduledReminders()
+        loadUpcomingEvents()
     }
     
     private func loadSuggestions() {
