@@ -323,8 +323,9 @@ struct UpcomingEventsTests {
         
         let events = engine.upcomingEvents(for: child, maxMonthsInFuture: nil)
         
-        // Find DTP event at 2 months
-        let dtp2Months = events.first { $0.templateId == "dtp_series" && $0.dueDate.timeIntervalSince(birthDate) > 0 }
+        // Find DTP event at 2 months (first DTP event)
+        let dtpEvents = events.filter { $0.templateId == "dtp_series" }
+        let dtp2Months = dtpEvents.first
         #expect(dtp2Months != nil)
         
         if let event = dtp2Months {

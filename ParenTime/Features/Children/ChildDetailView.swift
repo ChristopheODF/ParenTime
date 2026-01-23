@@ -167,38 +167,47 @@ struct ChildDetailView: View {
                 .font(.headline)
             
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                domainCard(title: "Vaccins", icon: "cross.case.fill", color: .blue)
-                domainCard(title: "Traitements", icon: "pills.fill", color: .green)
-                domainCard(title: "Rendez-vous", icon: "calendar.badge.clock", color: .orange)
-                domainCard(title: "Rappels", icon: "bell.fill", color: .purple)
+                NavigationLink {
+                    VaccinesView(child: child, suggestionsEngine: suggestionsEngine)
+                } label: {
+                    domainCardContent(title: "Vaccins", icon: "cross.case.fill", color: .blue)
+                }
+                
+                Button {
+                    // Placeholder for Traitements
+                } label: {
+                    domainCardContent(title: "Traitements", icon: "pills.fill", color: .green)
+                }
+                
+                Button {
+                    // Placeholder for Rendez-vous
+                } label: {
+                    domainCardContent(title: "Rendez-vous", icon: "calendar.badge.clock", color: .orange)
+                }
+                
+                Button {
+                    // Placeholder for Rappels
+                } label: {
+                    domainCardContent(title: "Rappels", icon: "bell.fill", color: .purple)
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
     
-    private func domainCard(title: String, icon: String, color: Color) -> some View {
-        NavigationLink {
-            if title == "Vaccins" {
-                VaccinesView(child: child, suggestionsEngine: suggestionsEngine)
-            } else {
-                // Placeholder for other domains
-                Text("\(title) - À venir")
-                    .navigationTitle(title)
-            }
-        } label: {
-            VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.title)
-                    .foregroundStyle(color)
-                Text(title)
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(Color(.systemGray6))
-            .cornerRadius(12)
+    private func domainCardContent(title: String, icon: String, color: Color) -> some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.title)
+                .foregroundStyle(color)
+            Text(title)
+                .font(.subheadline)
+                .foregroundStyle(.primary)
         }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
     }
     
     private func suggestionCard(_ suggestion: ReminderSuggestion) -> some View {
