@@ -153,9 +153,27 @@ struct VaccinesView: View {
     
     private func toggleActivation(for vaccine: UpcomingEvent, currentReminder: ScheduledReminder?) async {
         do {
+            // Check authorization status first
+            let authStatus = await notificationScheduler.authorizationStatus()
+            
             if let reminder = currentReminder {
                 // Update existing reminder
                 let newActivationState = !reminder.isActivated
+                
+                if newActivationState {
+                    // Activating: request authorization if needed
+                    if authStatus == .notDetermined {
+                        let granted = try await notificationScheduler.requestAuthorization()
+                        if !granted {
+                            // Authorization denied, don't activate
+                            return
+                        }
+                    } else if authStatus == .denied {
+                        // Already denied, can't activate
+                        return
+                    }
+                }
+                
                 try await remindersStore.updateActivation(id: reminder.id, isActivated: newActivationState)
                 
                 // Handle notification scheduling/cancellation
@@ -173,6 +191,18 @@ struct VaccinesView: View {
                     await notificationScheduler.cancelNotification(identifier: identifier)
                 }
             } else {
+                // Create new reminder - request authorization first
+                if authStatus == .notDetermined {
+                    let granted = try await notificationScheduler.requestAuthorization()
+                    if !granted {
+                        // Authorization denied
+                        return
+                    }
+                } else if authStatus == .denied {
+                    // Already denied, can't activate
+                    return
+                }
+                
                 // Create new reminder
                 let newReminder = ScheduledReminder.from(event: vaccine, childId: child.id)
                 var activatedReminder = newReminder
@@ -207,6 +237,13 @@ struct VaccinesView: View {
             return
         }
         
+        // Ensure notification date is in the future
+        let now = Date()
+        guard notificationDate > now else {
+            print("Warning: Cannot schedule notification for past date: \(notificationDate)")
+            return
+        }
+        
         do {
             try await notificationScheduler.scheduleNotification(
                 identifier: identifier,
@@ -216,6 +253,7 @@ struct VaccinesView: View {
             )
         } catch {
             // Silently fail for MVP
+            print("Error scheduling notification: \(error)")
         }
     }
 }

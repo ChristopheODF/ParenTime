@@ -21,15 +21,18 @@ struct AddReminderView: View {
     @State private var isSaving: Bool = false
     
     private let remindersStore: RemindersStore
+    private let notificationScheduler: NotificationScheduler
     
     init(
         child: Child,
         category: SuggestionCategory,
-        remindersStore: RemindersStore = AppContainer.shared.remindersStore
+        remindersStore: RemindersStore = AppContainer.shared.remindersStore,
+        notificationScheduler: NotificationScheduler = UserNotificationScheduler()
     ) {
         self.child = child
         self.category = category
         self.remindersStore = remindersStore
+        self.notificationScheduler = notificationScheduler
     }
     
     var body: some View {
@@ -93,6 +96,29 @@ struct AddReminderView: View {
     private func saveReminder() async {
         isSaving = true
         
+        // Check if activating and request authorization if needed
+        if activateImmediately {
+            let authStatus = await notificationScheduler.authorizationStatus()
+            
+            if authStatus == .notDetermined {
+                do {
+                    let granted = try await notificationScheduler.requestAuthorization()
+                    if !granted {
+                        // Authorization denied, don't activate
+                        isSaving = false
+                        return
+                    }
+                } catch {
+                    isSaving = false
+                    return
+                }
+            } else if authStatus == .denied {
+                // Already denied, don't activate
+                isSaving = false
+                return
+            }
+        }
+        
         let reminder = ScheduledReminder(
             childId: child.id,
             templateId: nil, // User-created, no template
@@ -106,6 +132,26 @@ struct AddReminderView: View {
         
         do {
             try await remindersStore.saveReminder(reminder)
+            
+            // Schedule notification if activated
+            if activateImmediately {
+                let now = Date()
+                if dueDate > now {
+                    let identifier = ReminderIdentifierUtils.notificationIdentifier(
+                        childId: child.id,
+                        templateId: reminder.id.uuidString,
+                        dueDate: dueDate
+                    )
+                    
+                    try await notificationScheduler.scheduleNotification(
+                        identifier: identifier,
+                        title: title,
+                        body: "Rappel pour \(child.firstName)",
+                        at: dueDate
+                    )
+                }
+            }
+            
             dismiss()
         } catch {
             // For MVP, silently fail

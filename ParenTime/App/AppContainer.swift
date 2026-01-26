@@ -22,9 +22,8 @@ final class AppContainer: ObservableObject {
         suggestionStateStore: SuggestionStateStore? = nil,
         remindersStore: RemindersStore? = nil
     ) {
-        // Par défaut, utilise le store en mémoire
-        // Plus tard, on pourra injecter une implémentation SwiftData
-        self.childrenStore = childrenStore ?? InMemoryChildrenStore()
+        // Par défaut, utilise UserDefaultsChildrenStore pour la persistance
+        self.childrenStore = childrenStore ?? UserDefaultsChildrenStore()
         self.suggestionStateStore = suggestionStateStore ?? SuggestionStateStore()
         self.remindersStore = remindersStore ?? UserDefaultsRemindersStore()
     }

@@ -117,22 +117,23 @@ struct ReminderSuggestionsEngine {
     ///   - child: L'enfant pour lequel générer des événements
     ///   - maxMonthsInFuture: Horizon maximum en mois (nil = pas de limite)
     ///   - includeOverdue: Si true, inclut les occurrences en retard
-    /// - Returns: Liste d'événements à venir (un seul par templateId)
+    /// - Returns: Liste d'événements à venir (un seul par templateId, ou par seriesId si défini)
     func nextOccurrencePerTemplate(for child: Child, maxMonthsInFuture: Int? = nil, includeOverdue: Bool = false) -> [UpcomingEvent] {
         let allEvents = upcomingEvents(for: child, maxMonthsInFuture: maxMonthsInFuture)
         
-        // Group events by templateId
-        var eventsByTemplate: [String: [UpcomingEvent]] = [:]
+        // Group events by seriesId (if present) or templateId
+        var eventsByGroup: [String: [UpcomingEvent]] = [:]
         for event in allEvents {
-            if eventsByTemplate[event.templateId] == nil {
-                eventsByTemplate[event.templateId] = []
+            let groupKey = event.seriesId ?? event.templateId
+            if eventsByGroup[groupKey] == nil {
+                eventsByGroup[groupKey] = []
             }
-            eventsByTemplate[event.templateId]?.append(event)
+            eventsByGroup[groupKey]?.append(event)
         }
         
-        // For each template, keep only the next occurrence (earliest date >= now)
+        // For each group, keep only the next occurrence (earliest date >= now)
         var nextOccurrences: [UpcomingEvent] = []
-        for (_, events) in eventsByTemplate {
+        for (_, events) in eventsByGroup {
             // Sort by date
             let sortedEvents = events.sorted { $0.dueDate < $1.dueDate }
             

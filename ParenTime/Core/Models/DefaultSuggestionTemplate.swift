@@ -17,6 +17,7 @@ struct DefaultSuggestionTemplate: Codable, Identifiable, Equatable {
     let defaultNotificationTime: String
     let description: String?
     let schedule: Schedule?
+    let seriesId: String? // Optional field for grouping vaccine series
     
     struct Conditions: Codable, Equatable {
         let minAge: Int?
