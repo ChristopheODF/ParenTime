@@ -20,6 +20,11 @@ struct ChildDetailView: View {
     @State private var pendingNotificationCount = 0
     @State private var debugNotificationSent = false
     
+    // Debug constants
+    #if DEBUG
+    private let debugNotificationDelay: TimeInterval = 10
+    #endif
+    
     private let notificationScheduler: NotificationScheduler
     private let suggestionsEngine: ReminderSuggestionsEngine
     private let remindersStore: RemindersStore
@@ -145,7 +150,7 @@ struct ChildDetailView: View {
                         await testNotificationIn10Seconds()
                     }
                 } label: {
-                    Label("Tester notification dans 10s", systemImage: "bell.badge")
+                    Label("Tester notification dans \(Int(debugNotificationDelay))s", systemImage: "bell.badge")
                         .font(.caption)
                 }
                 .buttonStyle(.borderedProminent)
@@ -184,21 +189,21 @@ struct ChildDetailView: View {
             return
         }
         
-        let testDate = Date().addingTimeInterval(10)
+        let testDate = Date().addingTimeInterval(debugNotificationDelay)
         let identifier = "debug_test_\(UUID().uuidString)"
         
         do {
             try await notificationScheduler.scheduleNotification(
                 identifier: identifier,
                 title: "Test ParenTime - \(child.firstName)",
-                body: "Cette notification de test devrait apparaître dans 10 secondes",
+                body: "Cette notification de test devrait apparaître dans \(Int(debugNotificationDelay)) secondes",
                 at: testDate
             )
             debugNotificationSent = true
             
-            // Reset flag after a few seconds
+            // Reset flag after 3 seconds
             Task {
-                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                try? await Task.sleep(for: .seconds(3))
                 debugNotificationSent = false
             }
             

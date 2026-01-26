@@ -252,7 +252,7 @@ struct VaccinesView: View {
                 at: notificationDate
             )
         } catch {
-            // Silently fail for MVP
+            // Log error but don't show to user
             print("Error scheduling notification: \(error)")
         }
     }
