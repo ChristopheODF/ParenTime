@@ -17,6 +17,8 @@ struct ChildDetailView: View {
     @State private var scheduledReminders: [ScheduledReminder] = []
     @State private var showingPermissionAlert = false
     @State private var permissionDeniedAlert = false
+    @State private var pendingNotificationCount = 0
+    @State private var debugNotificationSent = false
     
     private let notificationScheduler: NotificationScheduler
     private let suggestionsEngine: ReminderSuggestionsEngine
@@ -58,6 +60,11 @@ struct ChildDetailView: View {
             VStack(spacing: 24) {
                 // Header with name and age
                 headerSection
+                
+                #if DEBUG
+                // Debug notification tester
+                debugNotificationSection
+                #endif
                 
                 // Domain cards - moved to top for visibility
                 domainCardsSection
@@ -117,6 +124,99 @@ struct ChildDetailView: View {
         .background(Color(.systemGray6))
         .cornerRadius(12)
     }
+    
+    #if DEBUG
+    private var debugNotificationSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "ladybug.fill")
+                    .foregroundStyle(.orange)
+                Text("DEBUG - Test Notifications")
+                    .font(.headline)
+            }
+            
+            VStack(spacing: 8) {
+                Text("Notifications en attente: \(pendingNotificationCount)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                
+                Button {
+                    Task {
+                        await testNotificationIn10Seconds()
+                    }
+                } label: {
+                    Label("Tester notification dans 10s", systemImage: "bell.badge")
+                        .font(.caption)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.orange)
+                
+                if debugNotificationSent {
+                    Text("✓ Notification de test programmée !")
+                        .font(.caption2)
+                        .foregroundStyle(.green)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(Color.orange.opacity(0.1))
+            .cornerRadius(8)
+        }
+        .padding()
+        .background(Color.orange.opacity(0.05))
+        .cornerRadius(12)
+    }
+    
+    private func testNotificationIn10Seconds() async {
+        let authStatus = await notificationScheduler.authorizationStatus()
+        
+        if authStatus == .notDetermined {
+            do {
+                let granted = try await notificationScheduler.requestAuthorization()
+                if !granted {
+                    return
+                }
+            } catch {
+                return
+            }
+        } else if authStatus == .denied {
+            showingPermissionAlert = true
+            return
+        }
+        
+        let testDate = Date().addingTimeInterval(10)
+        let identifier = "debug_test_\(UUID().uuidString)"
+        
+        do {
+            try await notificationScheduler.scheduleNotification(
+                identifier: identifier,
+                title: "Test ParenTime - \(child.firstName)",
+                body: "Cette notification de test devrait apparaître dans 10 secondes",
+                at: testDate
+            )
+            debugNotificationSent = true
+            
+            // Reset flag after a few seconds
+            Task {
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                debugNotificationSent = false
+            }
+            
+            // Update pending count
+            await updatePendingNotificationCount()
+        } catch {
+            print("Error scheduling test notification: \(error)")
+        }
+    }
+    
+    private func updatePendingNotificationCount() async {
+        let center = UNUserNotificationCenter.current()
+        let pending = await center.pendingNotificationRequests()
+        await MainActor.run {
+            pendingNotificationCount = pending.count
+        }
+    }
+    #endif
     
     private var toDoNowSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -498,6 +598,10 @@ struct ChildDetailView: View {
         loadSuggestions()
         await loadScheduledReminders()
         loadUpcomingEvents()
+        
+        #if DEBUG
+        await updatePendingNotificationCount()
+        #endif
     }
     
     private func loadSuggestions() {
