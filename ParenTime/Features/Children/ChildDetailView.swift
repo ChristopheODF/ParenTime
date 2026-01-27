@@ -17,6 +17,13 @@ struct ChildDetailView: View {
     @State private var scheduledReminders: [ScheduledReminder] = []
     @State private var showingPermissionAlert = false
     @State private var permissionDeniedAlert = false
+    @State private var pendingNotificationCount = 0
+    @State private var debugNotificationSent = false
+    
+    // Debug constants
+    #if DEBUG
+    private let debugNotificationDelay: TimeInterval = 10
+    #endif
     
     private let notificationScheduler: NotificationScheduler
     private let suggestionsEngine: ReminderSuggestionsEngine
@@ -58,6 +65,11 @@ struct ChildDetailView: View {
             VStack(spacing: 24) {
                 // Header with name and age
                 headerSection
+                
+                #if DEBUG
+                // Debug notification tester
+                debugNotificationSection
+                #endif
                 
                 // Domain cards - moved to top for visibility
                 domainCardsSection
@@ -118,6 +130,99 @@ struct ChildDetailView: View {
         .cornerRadius(12)
     }
     
+    #if DEBUG
+    private var debugNotificationSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "ladybug.fill")
+                    .foregroundStyle(.orange)
+                Text("DEBUG - Test Notifications")
+                    .font(.headline)
+            }
+            
+            VStack(spacing: 8) {
+                Text("Notifications en attente: \(pendingNotificationCount)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                
+                Button {
+                    Task {
+                        await testNotificationIn10Seconds()
+                    }
+                } label: {
+                    Label("Tester notification dans \(Int(debugNotificationDelay))s", systemImage: "bell.badge")
+                        .font(.caption)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.orange)
+                
+                if debugNotificationSent {
+                    Text("✓ Notification de test programmée !")
+                        .font(.caption2)
+                        .foregroundStyle(.green)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(Color.orange.opacity(0.1))
+            .cornerRadius(8)
+        }
+        .padding()
+        .background(Color.orange.opacity(0.05))
+        .cornerRadius(12)
+    }
+    
+    private func testNotificationIn10Seconds() async {
+        let authStatus = await notificationScheduler.authorizationStatus()
+        
+        if authStatus == .notDetermined {
+            do {
+                let granted = try await notificationScheduler.requestAuthorization()
+                if !granted {
+                    return
+                }
+            } catch {
+                return
+            }
+        } else if authStatus == .denied {
+            showingPermissionAlert = true
+            return
+        }
+        
+        let testDate = Date().addingTimeInterval(debugNotificationDelay)
+        let identifier = "debug_test_\(UUID().uuidString)"
+        
+        do {
+            try await notificationScheduler.scheduleNotification(
+                identifier: identifier,
+                title: "Test ParenTime - \(child.firstName)",
+                body: "Cette notification de test devrait apparaître dans \(Int(debugNotificationDelay)) secondes",
+                at: testDate
+            )
+            debugNotificationSent = true
+            
+            // Reset flag after 3 seconds
+            Task {
+                try? await Task.sleep(for: .seconds(3))
+                debugNotificationSent = false
+            }
+            
+            // Update pending count
+            await updatePendingNotificationCount()
+        } catch {
+            print("Error scheduling test notification: \(error)")
+        }
+    }
+    
+    private func updatePendingNotificationCount() async {
+        let center = UNUserNotificationCenter.current()
+        let pending = await center.pendingNotificationRequests()
+        await MainActor.run {
+            pendingNotificationCount = pending.count
+        }
+    }
+    #endif
+    
     private var toDoNowSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -149,7 +254,7 @@ struct ChildDetailView: View {
                     .font(.headline)
             }
             
-            // Show only titles of upcoming events in the next 12 months
+            // Show upcoming events with activation buttons
             if upcomingEvents.isEmpty {
                 Text("Aucun événement à venir")
                     .font(.subheadline)
@@ -161,15 +266,7 @@ struct ChildDetailView: View {
             } else {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(upcomingEvents) { event in
-                        HStack {
-                            Text(event.title)
-                                .font(.subheadline)
-                            Spacer()
-                            Text(event.dueDate, style: .date)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.vertical, 4)
+                        upcomingEventRow(event)
                     }
                 }
                 .padding()
@@ -179,6 +276,138 @@ struct ChildDetailView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    
+    private func upcomingEventRow(_ event: UpcomingEvent) -> some View {
+        let reminder = scheduledReminders.first { $0.templateId == event.templateId && !$0.isCompleted }
+        let isActivated = reminder?.isActivated ?? false
+        
+        return HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(event.title)
+                    .font(.subheadline)
+                
+                HStack(spacing: 4) {
+                    priorityBadge(event.priority)
+                    Text("•")
+                        .foregroundStyle(.secondary)
+                    Text(event.dueDate, style: .date)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            
+            Spacer()
+            
+            // Show activation button
+            Button {
+                Task {
+                    await toggleEventActivation(event, currentReminder: reminder)
+                }
+            } label: {
+                Image(systemName: isActivated ? "bell.fill" : "bell")
+                    .font(.caption)
+                    .foregroundStyle(isActivated ? .blue : .secondary)
+            }
+            .buttonStyle(.bordered)
+            .tint(isActivated ? .blue : .gray)
+        }
+        .padding(.vertical, 4)
+    }
+    
+    private func toggleEventActivation(_ event: UpcomingEvent, currentReminder: ScheduledReminder?) async {
+        // Check authorization status first
+        let authStatus = await notificationScheduler.authorizationStatus()
+        
+        do {
+            if let reminder = currentReminder {
+                // Update existing reminder
+                let newActivationState = !reminder.isActivated
+                
+                if newActivationState {
+                    // Activating: request authorization if needed
+                    if authStatus == .notDetermined {
+                        let granted = try await notificationScheduler.requestAuthorization()
+                        if !granted {
+                            return
+                        }
+                    } else if authStatus == .denied {
+                        showingPermissionAlert = true
+                        return
+                    }
+                }
+                
+                try await remindersStore.updateActivation(id: reminder.id, isActivated: newActivationState)
+                
+                // Handle notification
+                let identifier = ReminderIdentifierUtils.notificationIdentifier(
+                    childId: child.id,
+                    templateId: event.templateId,
+                    dueDate: event.dueDate
+                )
+                
+                if newActivationState {
+                    await scheduleNotificationForEvent(event, identifier: identifier)
+                } else {
+                    await notificationScheduler.cancelNotification(identifier: identifier)
+                }
+            } else {
+                // Create new reminder - request authorization first
+                if authStatus == .notDetermined {
+                    let granted = try await notificationScheduler.requestAuthorization()
+                    if !granted {
+                        return
+                    }
+                } else if authStatus == .denied {
+                    showingPermissionAlert = true
+                    return
+                }
+                
+                let newReminder = ScheduledReminder.from(event: event, childId: child.id)
+                var activatedReminder = newReminder
+                activatedReminder.isActivated = true
+                try await remindersStore.saveReminder(activatedReminder)
+                
+                let identifier = ReminderIdentifierUtils.notificationIdentifier(
+                    childId: child.id,
+                    templateId: event.templateId,
+                    dueDate: event.dueDate
+                )
+                await scheduleNotificationForEvent(event, identifier: identifier)
+            }
+            
+            await loadData()
+        } catch {
+            // Silently fail for MVP
+        }
+    }
+    
+    private func scheduleNotificationForEvent(_ event: UpcomingEvent, identifier: String) async {
+        let calendar = Calendar.current
+        var components = calendar.dateComponents([.year, .month, .day], from: event.dueDate)
+        components.hour = ReminderIdentifierUtils.defaultNotificationHour
+        components.minute = 0
+        
+        guard let notificationDate = calendar.date(from: components) else {
+            return
+        }
+        
+        // Ensure notification date is in the future
+        let now = Date()
+        guard notificationDate > now else {
+            return
+        }
+        
+        do {
+            try await notificationScheduler.scheduleNotification(
+                identifier: identifier,
+                title: event.title,
+                body: "N'oubliez pas pour \(child.firstName)",
+                at: notificationDate
+            )
+        } catch {
+            // Silently fail
+        }
     }
     
     private var domainCardsSection: some View {
@@ -374,6 +603,10 @@ struct ChildDetailView: View {
         loadSuggestions()
         await loadScheduledReminders()
         loadUpcomingEvents()
+        
+        #if DEBUG
+        await updatePendingNotificationCount()
+        #endif
     }
     
     private func loadSuggestions() {
@@ -384,9 +617,16 @@ struct ChildDetailView: View {
         // Load upcoming events within 12 months, only next occurrence per vaccine/series
         let allNextOccurrences = suggestionsEngine.nextOccurrencePerTemplate(for: child, maxMonthsInFuture: 12)
         
-        // Filter to only show activated reminders
+        // Filter to show:
+        // 1. All required priority items (even if not activated)
+        // 2. Non-required items only if they are activated
         upcomingEvents = allNextOccurrences.filter { event in
-            // Check if this event has an activated reminder
+            if event.priority == .required {
+                // Always show required items
+                return true
+            }
+            
+            // For non-required, only show if activated
             if let reminder = scheduledReminders.first(where: { $0.templateId == event.templateId && !$0.isCompleted }) {
                 return reminder.isActivated
             }

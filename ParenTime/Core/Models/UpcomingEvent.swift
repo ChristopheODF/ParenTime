@@ -11,6 +11,7 @@ import Foundation
 struct UpcomingEvent: Identifiable, Equatable {
     let id: String
     let templateId: String
+    let seriesId: String? // Optional series identifier for grouping related vaccines
     let title: String
     let category: SuggestionCategory
     let priority: SuggestionPriority
@@ -20,6 +21,7 @@ struct UpcomingEvent: Identifiable, Equatable {
     init(
         id: String = UUID().uuidString,
         templateId: String,
+        seriesId: String? = nil,
         title: String,
         category: SuggestionCategory,
         priority: SuggestionPriority,
@@ -28,6 +30,7 @@ struct UpcomingEvent: Identifiable, Equatable {
     ) {
         self.id = id
         self.templateId = templateId
+        self.seriesId = seriesId
         self.title = title
         self.category = category
         self.priority = priority
@@ -43,6 +46,7 @@ struct UpcomingEvent: Identifiable, Equatable {
         return UpcomingEvent(
             id: stableId,
             templateId: template.id,
+            seriesId: template.seriesId,
             title: template.title,
             category: SuggestionCategory(rawValue: template.category) ?? .custom,
             priority: SuggestionPriority(rawValue: template.priority) ?? .info,
