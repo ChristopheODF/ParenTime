@@ -35,7 +35,7 @@ final class UserNotificationScheduler: NotificationScheduler {
         
         // Create trigger from date
         let components = Calendar.current.dateComponents(
-            [.year, .month, .day, .hour, .minute],
+            [.year, .month, .day, .hour, .minute, .second],
             from: date
         )
         let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
